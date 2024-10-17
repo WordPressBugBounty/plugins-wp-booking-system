@@ -21,7 +21,7 @@ function wpbs_refresh_calendar_editor()
         wp_die();
     }
 
-    if(!current_user_can('manage_options')){
+    if(!current_user_can(apply_filters( 'wpbs_submenu_page_capability_calendars', 'manage_options' ))){
         wp_die();
     }
 
