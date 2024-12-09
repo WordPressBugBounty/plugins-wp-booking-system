@@ -210,7 +210,7 @@ Class WPBS_WP_List_Table_Forms extends WPBS_WP_List_Table {
 
 		if( $item['status'] == 'active' ) {
 
-			$output  = '<strong><a class="row-title" href="' . add_query_arg( array( 'page' => 'wpbs-forms', 'subpage' => 'edit-form', 'form_id' => $item['id'] ) , admin_url( 'admin.php' ) ) . '">' . ( !empty( $item['name'] ) ? $item['name'] : '' ) . '</a></strong>';
+			$output  = '<strong><a class="row-title" href="' . add_query_arg( array( 'page' => 'wpbs-forms', 'subpage' => 'edit-form', 'form_id' => $item['id'] ) , admin_url( 'admin.php' ) ) . '">' . ( !empty( $item['name'] ) ? esc_attr($item['name']) : '' ) . '</a></strong>';
 
 			$actions = array(
 				'edit_form' => '<a href="' . add_query_arg( array( 'page' => 'wpbs-forms', 'subpage' => 'edit-form', 'form_id' => $item['id'] ) , admin_url( 'admin.php' ) ) . '">' . __( 'Edit form', 'wp-booking-system' ) . '</a>',
@@ -221,7 +221,7 @@ Class WPBS_WP_List_Table_Forms extends WPBS_WP_List_Table {
 
 		if( $item['status'] == 'trash' ) {
 
-			$output  = '<strong>' . ( !empty( $item['name'] ) ? $item['name'] : '' ) . '</strong>';
+			$output  = '<strong>' . ( !empty( $item['name'] ) ? esc_attr($item['name']) : '' ) . '</strong>';
 
 			$actions = array(
 				'restore_form' => '<a href="' . wp_nonce_url( add_query_arg( array( 'page' => 'wpbs-forms', 'wpbs_action' => 'restore_form', 'form_id' => $item['id'] ) , admin_url( 'admin.php' ) ), 'wpbs_restore_form', 'wpbs_token' ) . '">' . __( 'Restore form', 'wp-booking-system' ) . '</a>',

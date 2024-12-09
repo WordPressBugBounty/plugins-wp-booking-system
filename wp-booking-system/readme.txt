@@ -2,8 +2,8 @@
 Contributors: murgroland
 Tags: booking calendar, booking system, availability calendar, reservation calendar, icalendar
 Requires at least: 4.7
-Tested up to: 6.6
-Stable tag: 2.0.19.11
+Tested up to: 6.7
+Stable tag: 2.0.19.12
 Requires PHP: 5.6
 License: GPLv2
 License URI: https://www.opensource.org/licenses/GPL-2.0
@@ -163,6 +163,9 @@ Please see [www.wpbookingsystem.com](https://www.wpbookingsystem.com) for more i
 
 
 == Changelog ==
+
+= 2.0.19.12 =
+* Fixed: Security improvements (XSS issue in the backend, thanks to Ayato Shitomi for reporting)
 
 = 2.0.19.11 =
 * Improved: Security Improvements

@@ -216,7 +216,7 @@ Class WPBS_WP_List_Table_Calendars extends WPBS_WP_List_Table {
 
 		if( $item['status'] == 'active' ) {
  
-			$output  = '<strong><a class="row-title" href="' . add_query_arg( array( 'page' => 'wpbs-calendars', 'subpage' => 'edit-calendar', 'calendar_id' => $item['id'] ) , admin_url( 'admin.php' ) ) . '">' . ( !empty( $item['name'] ) ? $item['name'] : '' ) . '</a> '.$bookings_count.'</strong>';
+			$output  = '<strong><a class="row-title" href="' . add_query_arg( array( 'page' => 'wpbs-calendars', 'subpage' => 'edit-calendar', 'calendar_id' => $item['id'] ) , admin_url( 'admin.php' ) ) . '">' . ( !empty( $item['name'] ) ? esc_attr($item['name']) : '' ) . '</a> '.$bookings_count.'</strong>';
 
 			$actions = array(
 				'edit_calendar' => '<a href="' . add_query_arg( array( 'page' => 'wpbs-calendars', 'subpage' => 'edit-calendar', 'calendar_id' => $item['id'] ) , admin_url( 'admin.php' ) ) . '">' . __( 'Edit Calendar', 'wp-booking-system' ) . '</a>',
@@ -227,7 +227,7 @@ Class WPBS_WP_List_Table_Calendars extends WPBS_WP_List_Table {
 
 		if( $item['status'] == 'trash' ) {
 
-			$output  = '<strong>' . ( !empty( $item['name'] ) ? $item['name'] : '' ) . ' '.$bookings_count.'</strong>';
+			$output  = '<strong>' . ( !empty( $item['name'] ) ? esc_attr($item['name']) : '' ) . ' '.$bookings_count.'</strong>';
 
 			$actions = array(
 				'restore_calendar' => '<a href="' . wp_nonce_url( add_query_arg( array( 'page' => 'wpbs-calendars', 'wpbs_action' => 'restore_calendar', 'calendar_id' => $item['id'] ) , admin_url( 'admin.php' ) ), 'wpbs_restore_calendar', 'wpbs_token' ) . '">' . __( 'Restore Calendar', 'wp-booking-system' ) . '</a>',
