@@ -72,7 +72,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
         <a class="wpbs-button" href="https://www.wpbookingsystem.com/pricing/" target="_blank">Get Started</a>
 
-        <p class="prices">Prices starting from $59.</p>
+        <p class="prices">Prices starting from $79.</p>
 
 
     </div>
