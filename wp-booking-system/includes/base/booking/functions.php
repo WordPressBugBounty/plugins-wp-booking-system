@@ -28,7 +28,6 @@ function wpbs_include_files_booking()
     if (file_exists($dir_path . 'class-object-meta-db-bookings.php')) {
         include $dir_path . 'class-object-meta-db-bookings.php';
     }
-
 }
 add_action('wpbs_include_files', 'wpbs_include_files_booking');
 
@@ -47,7 +46,6 @@ function wpbs_register_database_classes_bookings($classes)
     $classes['bookingmeta'] = 'WPBS_Object_Meta_DB_Bookings';
 
     return $classes;
-
 }
 add_filter('wpbs_register_database_classes', 'wpbs_register_database_classes_bookings');
 
@@ -74,7 +72,6 @@ function wpbs_get_bookings($args = array(), $count = false)
      *
      */
     return apply_filters('wpbs_get_bookings', $bookings, $args, $count);
-
 }
 
 /**
@@ -89,7 +86,6 @@ function wpbs_get_booking($booking)
 {
 
     return wp_booking_system()->db['bookings']->get_object($booking);
-
 }
 
 /**
@@ -104,7 +100,6 @@ function wpbs_insert_booking($data)
 {
 
     return wp_booking_system()->db['bookings']->insert($data);
-
 }
 
 /**
@@ -120,7 +115,6 @@ function wpbs_update_booking($booking_id, $data)
 {
 
     return wp_booking_system()->db['bookings']->update($booking_id, $data);
-
 }
 
 /**
@@ -135,7 +129,6 @@ function wpbs_delete_booking($booking_id)
 {
 
     return wp_booking_system()->db['bookings']->delete($booking_id);
-
 }
 
 /**
@@ -153,7 +146,6 @@ function wpbs_add_booking_meta($booking_id, $meta_key, $meta_value, $unique = fa
 {
 
     return wp_booking_system()->db['bookingmeta']->add($booking_id, $meta_key, $meta_value, $unique);
-
 }
 
 /**
@@ -171,7 +163,6 @@ function wpbs_update_booking_meta($booking_id, $meta_key, $meta_value, $prev_val
 {
 
     return wp_booking_system()->db['bookingmeta']->update($booking_id, $meta_key, $meta_value, $prev_value);
-
 }
 
 /**
@@ -188,7 +179,6 @@ function wpbs_get_booking_meta($booking_id, $meta_key = '', $single = false)
 {
 
     return wp_booking_system()->db['bookingmeta']->get($booking_id, $meta_key, $single);
-
 }
 
 /**
@@ -227,5 +217,53 @@ function wpbs_delete_booking_meta($booking_id, $meta_key, $meta_value = '', $del
 {
 
     return wp_booking_system()->db['bookingmeta']->delete($booking_id, $meta_key, $meta_value, $delete_all);
+}
 
+/**
+ * Check if an invoice is available for the given invoice hash
+ *
+ * @param string $hash
+ *
+ * @return WPBS_Booking
+ *
+ */
+if (!function_exists('wpbs_get_booking_by_hash')) {
+    function wpbs_get_booking_by_hash($hash)
+    {
+
+        // Check if a booking with that hash number exists
+        $bookings = wpbs_get_bookings(array('invoice_hash' => $hash));
+
+        if (empty($bookings)) {
+            return false;
+        }
+
+        $booking = array_shift($bookings);
+
+        return $booking;
+    }
+}
+
+
+/**
+ * Return a booking by it's cancellation hash
+ *
+ * @param string $hash
+ *
+ * @return WPBS_Booking
+ *
+ */
+function wpbs_get_booking_by_cancellation_hash($hash)
+{
+
+    // Check if a booking with that hash number exists
+    $bookings = wpbs_get_bookings(array('cancellation_hash' => $hash));
+
+    if (empty($bookings)) {
+        return false;
+    }
+
+    $booking = array_shift($bookings);
+
+    return $booking;
 }

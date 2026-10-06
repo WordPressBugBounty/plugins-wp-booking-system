@@ -1,20 +1,22 @@
 <?php
 
 // Exit if accessed directly
-if ( ! defined( 'ABSPATH' ) ) exit;
+if (! defined('ABSPATH')) exit;
 
 
 /**
  * Class that handles database queries for the Calendars
  *
  */
-Class WPBS_Object_DB_Calendars extends WPBS_Object_DB {
+class WPBS_Object_DB_Calendars extends WPBS_Object_DB
+{
 
 	/**
 	 * Construct
 	 *
 	 */
-	public function __construct() {
+	public function __construct()
+	{
 
 		global $wpdb;
 
@@ -22,7 +24,6 @@ Class WPBS_Object_DB_Calendars extends WPBS_Object_DB {
 		$this->primary_key 		 = 'id';
 		$this->context 	  		 = 'calendar';
 		$this->query_object_type = 'WPBS_Calendar';
-
 	}
 
 
@@ -30,7 +31,8 @@ Class WPBS_Object_DB_Calendars extends WPBS_Object_DB {
 	 * Return the table columns 
 	 *
 	 */
-	public function get_columns() {
+	public function get_columns()
+	{
 
 		return array(
 			'id' 		    => '%d',
@@ -40,7 +42,6 @@ Class WPBS_Object_DB_Calendars extends WPBS_Object_DB {
 			'status'		=> '%s',
 			'ical_hash'		=> '%s'
 		);
-
 	}
 
 
@@ -53,7 +54,8 @@ Class WPBS_Object_DB_Calendars extends WPBS_Object_DB {
 	 * @return mixed array|int
 	 *
 	 */
-	public function get_calendars( $args = array(), $count = false ) {
+	public function get_calendars($args = array(), $count = false)
+	{
 
 		$defaults = array(
 			'number'    => -1,
@@ -64,7 +66,7 @@ Class WPBS_Object_DB_Calendars extends WPBS_Object_DB {
 			'search'	=> ''
 		);
 
-		$args = wp_parse_args( $args, $defaults );
+		$args = wp_parse_args($args, $defaults);
 
 		/**
 		 * Filter the query arguments just before making the db call
@@ -72,52 +74,66 @@ Class WPBS_Object_DB_Calendars extends WPBS_Object_DB {
 		 * @param array $args
 		 *
 		 */
-		$args = apply_filters( 'wpbs_get_calendars_args', $args );
+		$args = apply_filters('wpbs_get_calendars_args', $args);
 
 		// Number args
-		if( $args['number'] < 1 )
+		if ($args['number'] < 1)
 			$args['number'] = 999999;
 
 		// Where clause
 		$where = "WHERE 1=1";
 
 		// Status where clause
-		if( ! empty( $args['status'] ) ) {
+		if (! empty($args['status'])) {
 
-			$status = sanitize_text_field( $args['status'] );
+			$status = esc_sql($args['status']);
 			$where .= " AND status = '{$status}'";
-
 		}
 
+		// iCalendar hash where clause
+		if (! empty($args['ical_hash'])) {
+
+			$ical_hash = esc_sql($args['ical_hash']);
+			$where .= " AND ical_hash = '{$ical_hash}'";
+		}
 
 		// Include where clause
-		if( ! empty( $args['include'] ) ) {
+		if (!empty($args['include'])) {
 
-			$include = implode( ',', $args['include'] );
-			$where  .= " AND id IN({$include})";
+			$include = array_map('absint', (array) $args['include']);
+			$include = array_values(array_filter($include));
 
+			if (!empty($include)) {
+				$where .= ' AND id IN(' . implode(',', $include) . ')';
+			}
 		}
 
 		// Include search
-		if( ! empty( $args['search'] ) ) {
+		if (! empty($args['search'])) {
 
-			$search = sanitize_text_field( $args['search'] );
+			$search = esc_sql($args['search']);
 			$where  .= " AND name LIKE '%%{$search}%%'";
-
 		}
 
 		// Orderby
-		$orderby = in_array($args['orderby'], array('id', 'name', 'date_created', 'date_modified', 'status')) ? $args['orderby'] : 'id';
+		$allowed_orderby = array('id', 'name', 'date_created', 'date_modified', 'status', 'RAND()');
+
+		if (in_array($args['orderby'], $allowed_orderby, true)) {
+			$orderby = $args['orderby'];
+		} elseif (is_string($args['orderby']) && preg_match('/^FIELD\(\s*id\s*(?:,\s*\d+\s*)+\)$/', $args['orderby'])) {
+			$orderby = $args['orderby'];
+		} else {
+			$orderby = 'id';
+		}
 
 		// Order
-		$order = ( 'DESC' === strtoupper( $args['order'] ) ? 'DESC' : 'ASC' );
+		$order = ('DESC' === strtoupper($args['order']) ? 'DESC' : 'ASC');
 
-		$clauses = compact( 'where', 'orderby', 'order', 'count' );
+		$clauses = compact('where', 'orderby', 'order', 'count');
 
-		$results = $this->get_results( $clauses, $args, 'wpbs_get_calendar' );
+		$results = $this->get_results($clauses, $args, 'wpbs_get_calendar');
 
 		return $results;
-
 	}
 
 
@@ -125,7 +141,8 @@ Class WPBS_Object_DB_Calendars extends WPBS_Object_DB {
 	 * Creates and updates the database table for the calendars
 	 *
 	 */
-	public function create_table() {
+	public function create_table()
+	{
 
 		global $wpdb;
 
@@ -139,12 +156,10 @@ Class WPBS_Object_DB_Calendars extends WPBS_Object_DB {
 			date_modified datetime NOT NULL,
 			status text NOT NULL,
 			ical_hash text NOT NULL,
-			PRIMARY KEY  id (id)
+			PRIMARY KEY (id)
 		) {$charset_collate};";
 
-		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-		dbDelta( $query );
-
+		require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+		dbDelta($query);
 	}
-
 }

@@ -102,4 +102,35 @@ class WPBS_Event extends WPBS_Base_Object {
 	 */
 	protected $price;
 
+	/**
+	 * The inventory for an event
+	 * 
+	 * Only used when the Inventory Add-on is installed
+	 *
+	 * @access protected
+	 * @var    int
+	 *
+	 */
+	protected $inventory;
+	
+	/**
+	 * The minimum stay for an event
+	 * 
+	 * Only used when the Booking Restrictions Add-on is installed and the option is enabled
+	 *
+	 * @access protected
+	 * @var    int
+	 *
+	 */
+	protected $minimum_stay;
+
+	/**
+     * Hold temporary meta data
+     *
+     * @access protected
+     * @var    string
+     *
+     */
+    protected $meta;
+
 }

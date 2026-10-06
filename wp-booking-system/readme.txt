@@ -3,7 +3,7 @@ Contributors: murgroland
 Tags: booking calendar, booking system, availability calendar, reservation calendar, icalendar
 Requires at least: 4.7
 Tested up to: 7.0
-Stable tag: 2.0.19.14
+Stable tag: 2.1
 Requires PHP: 5.6
 License: GPLv2
 License URI: https://www.opensource.org/licenses/GPL-2.0
@@ -12,7 +12,7 @@ The booking calendar plugin for WordPress. Get easy online booking with this lig
 
 == Description ==
 
-The booking calendar plugin for WordPress. WP Booking System is used by more than 10,000 active users, with a satisfaction rate that borders on 5*!
+WP Booking System is a WordPress booking plugin and availability calendar designed for daily rentals. Used on more than 20,000 WordPress websites, it helps rental businesses accept bookings, manage availability and synchronize calendars.
 
 Is this booking calendar for you?
 
@@ -62,33 +62,37 @@ All your bookings are saved in your rental calendar and are beautifully displaye
 
 ### Features of the Free version:
 
-* Create your own booking system: a booking calendar and a booking form!
-* Receive and manage bookings
+* Create your own booking system with one booking calendar and one booking form
+* Receive and manage bookings directly from your WordPress dashboard
 * Save extra booking information
+* Create and customize your own calendar legend with custom statuses, colors and text
+* Use split days for arrival and departure dates
+* Display multiple months
+* Change the first day of the week
+* Change the start month / year
+* Edit multiple dates with just one click
+* Display tooltips with extra info
+* Hide calendar bookings from the past from your visitors
+* Show the week’s number on the booking calendar
+* Set booking limits, including minimum and maximum stay lengths and allowed start and end days
+* Automatically block booked days to help prevent double bookings
 * Generate a shortcode to insert the booking calendar and booking form into a page or post
+* Compatible with all major Page builders
 * Use the Gutenberg block to embed the booking calendar
-* WP Booking System Widget
+* Use the WP Booking System widget
+
 * The booking calendar supports multiple languages
 
 ### EXTRA FEATURES OF THE PREMIUM BOOKING CALENDAR VERSION:
 
-* The booking system can accept online and offline payments
+* Accept online and offline payments
+* Add pricing, seasonal rates, extras, deposits, taxes and discounts to your bookings
 * iCalendar Sync, Import and Export
 * Create an unlimited number of booking calendars
 * Create an unlimited number of booking forms
-* Create your own rental calendar legend: apply your own colors and text
-* Split days selection
-* Display multiple months
-* Change the first day of the week
-* Change the start month / year
+* Use the Advanced Booking Restrictions add-on for more powerful booking rules, including seasonal restrictions, fixed booking lengths, arrival and departure rules, booking windows and turnaround periods
 * Display an overview reservation calendar
-* Edit multiple dates with just one click
-* Display tooltips with extra info
-* Hide calendar bookings from the past from your visitors
-* Set the minimum number of days that the visitor must book
-* Show the week’s number on the booking calendar
-* Automatically block booked days directly
-* Send booking notifications
+* Send and customize booking notifications
 * User management within the booking system
 * Very easy to translate into any language
 * Professional support for any question related to the booking calendar
@@ -119,7 +123,7 @@ The booking system will soon become an indispensable tool in your business, and 
 * Collect relevant information about your clients through the booking system form (configure the rental calendar form to your needs). No need to call or collect this information at the desk.
 * Use the WP Booking System on the go, from your mobile phone. The WP Booking Calendar can be used from mobile devices with ease - simply log in to your website and make any necessary edits just like on a computer.
 * Manage bookings offline - when you meet with a client 1:1 and they want to make a future booking, simply log in to your website, access the booking calendar and make the reservation on the spot, for them.
-* Stay up to date with calendar bookings by receiving email confirmations and reminders
+* With the Premium version, stay up to date with bookings using customizable email confirmations, notifications and reminders
 
 #### WP Booking System in a nutshell...
 
@@ -139,17 +143,59 @@ Get organised and start receiving bookings with WP booking system. With this WP 
 
 = How can I embed the booking calendar on a page or post? =
 
-By using the 'Add Calendar' button above the editor, the Gutenberg module, a widget, or directly by using the shortcode. An example of the shortcode is:
+You can add the booking calendar using the Gutenberg block, widget, the “Add Calendar” button above the editor, or directly with a shortcode.
 
-`[wpbs id="1" title="yes/no" legend="yes/no" language="auto" form_id="1"]`
+An example shortcode is:
+
+`[wpbs id="1" title="yes" legend="yes" legend_position="side" display="1" year="0" month="0" show_first_available_date="no" language="auto" start="1" dropdown="yes" jump="no" history="1" tooltip="1" highlighttoday="no" weeknumbers="no" show_prices="no" form_id="1" form_position="bottom" auto_pending="yes" selection_type="multiple" selection_style="normal" minimum_days="0" maximum_days="0" booking_start_day="0" booking_end_day="0" show_date_selection="no"]`
+
+You can see the full documentation here: https://www.wpbookingsystem.com/documentation/adding-a-calendar-and-a-form-to-a-page/the-shortcode/
 
 = Will this booking system work for me? =
 
-We're pretty sure about that! We made this plugin as 'flexible' as possible. The booking plugin works with bookings on a per day basis (no time slots). So if you rent something out on a daily basis, then the WP Booking System is a good choice.
+WP Booking System is designed for bookings made on a per day basis rather than hourly time slots. It is a good fit for holiday homes, cabins, apartments, boats, equipment rentals, campsites and other businesses where customers reserve one or more full days.
+
+= Can customers make bookings directly from the calendar? =
+
+Yes. Visitors can select their desired dates, complete the booking form and submit their reservation directly from your website. You can then review and manage the booking from your WordPress dashboard.
+
+= Can I customize the booking form? =
+
+Yes. You can customize the booking form and choose what information you want to collect from your customers.
+
+= Does WP Booking System work on mobile devices? =
+
+Yes. The booking calendar is responsive and works on desktop, tablet and mobile devices.
+
+= Does WP Booking System support multiple languages? =
+
+Yes. The booking calendar supports multiple languages, making it suitable for websites with international visitors.
+
+= Can I manage bookings from the WordPress dashboard? =
+
+Yes. Submitted bookings can be viewed and managed directly from your WordPress dashboard.
+
+= Does WP Booking System work with any WordPress page builder? =
+
+Yes. WP Booking System works with popular WordPress page builders such as Elementor, Divi, Bricks, Beaver Builder, WPBakery and other page builders that support shortcodes, widgets or Gutenberg blocks. This makes it easy to add your booking calendar to almost any page layout.
+
+= Does WP Booking System work with any WordPress theme? =
+
+Yes. WP Booking System is designed to work with any properly coded WordPress theme. The booking calendar is responsive and adapts to the layout of your website.
+
+= Is WP Booking System compatible with managed WordPress hosting? =
+
+Yes. WP Booking System works with managed WordPress hosting environments, including [Kinsta](https://kinsta.com/).
+
+= Does WP Booking System support hourly appointments? =
+
+No. WP Booking System is designed for day based and multi day bookings. It is best suited to businesses where customers choose dates rather than specific appointment times.
 
 = I have another question =
 
-Please see [www.wpbookingsystem.com](https://www.wpbookingsystem.com) for more information and ask your questions there!
+Please visit [wpbookingsystem.com](https://www.wpbookingsystem.com/) for more information, documentation and support.
+
+
 
 
 == Screenshots ==
@@ -163,6 +209,12 @@ Please see [www.wpbookingsystem.com](https://www.wpbookingsystem.com) for more i
 
 
 == Changelog ==
+
+= 2.1 =
+* New: Custom calendar legends are now available in the Free version
+* New: Split day selection is now available in the Free version
+* New: Booking limits are now available in the Free version
+* New: Automatically blocking booked days is now available in the Free version
 
 = 2.0.19.14 = 
 * Improved: Backend Styling for WordPress 7.0
@@ -289,135 +341,3 @@ Please see [www.wpbookingsystem.com](https://www.wpbookingsystem.com) for more i
 * Improved: Form Builder
 * Improved: Booking Manager
 * Improved: Calendar front-end display
-
-= 1.5.2 =
-* Fixed Deprecated widget constructor
-
-= 1.5.2 =
-* Security Improvements
-
-= 1.5.1 =
-* Fixed: Issue with hovering over calendar dates.
-
-= 1.5 =
-* Added Bulgarian language
-* Fixed Mod_Security new SQL Injection filter conflict
-
-= 1.4 =
-* Added filters to sanitize user input to prevent cross-site scripting (XSS) and SQL injections. Thanks to JPCERT/CC for pointing us at this issue.
-
-= 1.3.3 =
-* Fixed a small CSS issue regarding bulk edit
-
-= 1.3.2 =
-* Fixed translation problem regarding form options (i.e. radio buttons)
-
-= 1.3.1 =
-* The notification of unread bookings now disappears when you delete the related calendar
-
-= 1.3 =
-* The admin panel is now fully responsive
-* Updated the Premium features list
-
-= 1.2.3 =
-* Small tweak to support PHP 7
-
-= 1.2.2 =
-* Hide notifications in the toolbar when the user does not have access to the corresponding page
-
-= 1.2.1 =
-* Decode booking details before saving
-
-= 1.2 =
-* Minor bug fixes
-
-= 1.1 =
-* UTF-8 fix
-
-= 1.0 =
-* Changed the version number to 1.0
-
-= 0.7 =
-* Small CSS fixes and a language fix related to the widget
-
-= 0.6 =
-* Second output buffer fix
-
-= 0.5 =
-* Output buffer fix
-
-= 0.4 =
-* Fix in booking details fields.
-* Update (elaboration): The booking notes (the content of the text fields near the editable dates in the admin panel) were shown in the source code of the page the calendar was displayed on (this content can also be indexed by Google). If you were vulnerable, your website and the booking notes may have been archived and exposed by https://archive.org, and possibly by other sites. Please ask them to delete your data if needed. Affected versions of the Free version: All versions lower than 0.4.
-
-= 0.3 =
-* Minor fix
-
-= 0.2 =
-* Small CSS fixes
-
-= 0.1 =
-* First release
-
-
-== Upgrade Notice ==
-
-= 1.5 =
-* Added Bulgarian language
-* Fixed Mod_Security new SQL Injection filter conflict
-
-= 1.4 =
-* Update strongly recommended! Added filters to sanitize user input to prevent cross-site scripting (XSS) and SQL injections. Thanks to JPCERT/CC for pointing us at this issue.
-
-= 1.3.3 =
-* Fixed a small CSS issue regarding bulk edit
-
-= 1.3.2 =
-* Fixed translation problem regarding form options (i.e. radio buttons)
-
-= 1.3.1 =
-* The notification of unread bookings now disappears when you delete the related calendar
-
-= 1.3 =
-* The admin panel is now fully responsive
-* Updated the Premium features list
-
-= 1.2.3 =
-* Small tweak to support PHP 7
-
-= 1.2.2 =
-* Hide notifications in the toolbar when the user does not have access to the corresponding page
-
-= 1.2.1 =
-* Decode booking details before saving
-
-= 1.2 =
-* Minor bug fixes
-
-= 1.1 =
-* UTF-8 fix
-
-= 1.0 =
-* Changed the version number to 1.0
-
-= 0.7 =
-* Small CSS fixes and a language fix related to the widget
-
-= 0.6 =
-* Second output buffer fix
-
-= 0.5 =
-* Output buffer fix
-
-= 0.4 =
-* Fix in booking details fields
-* Update (elaboration): The booking notes (the content of the text fields near the editable dates in the admin panel) were shown in the source code of the page the calendar was displayed on (this content can also be indexed by Google). If you were vulnerable, your website and the booking notes may have been archived and exposed by https://archive.org, and possibly by other sites. Please ask them to delete your data if needed. Affected versions of the Free version: All versions lower than 0.4.
-
-= 0.3 =
-* Minor fix
-
-= 0.2 =
-* Small CSS fixes
-
-= 0.1 =
-* First release

@@ -46,6 +46,8 @@ class WPBS_Object_DB_Events extends WPBS_Object_DB
             'description' => '%s',
             'tooltip' => '%s',
             'price' => '%s',
+            'inventory' => '%s',
+            'minimum_stay' => '%s',
         );
 
     }
@@ -72,6 +74,7 @@ class WPBS_Object_DB_Events extends WPBS_Object_DB
             'date_day' => array(),
             'calendar_id' => 0,
             'legend_item_id' => 0,
+            'custom_query' => ''
         );
 
         $args = wp_parse_args($args, $defaults);
@@ -82,21 +85,26 @@ class WPBS_Object_DB_Events extends WPBS_Object_DB
         }
 
         // Where clause
-        $where = '';
+        $where = 'WHERE 1=1 ';
 
         // Calendar ID where clause
         if (!empty($args['calendar_id'])) {
 
             $calendar_id = absint($args['calendar_id']);
-            $where .= "WHERE calendar_id = {$calendar_id}";
+            $where .= "AND calendar_id = {$calendar_id}";
 
         }
 
         // Legend Item ID where clause
         if (!empty($args['legend_item_id'])) {
 
-            $legend_item_id = absint($args['legend_item_id']);
-            $where .= " AND legend_item_id = {$legend_item_id}";
+            if (is_array($args['legend_item_id'])) {
+                $legend_item_id = implode(',', array_map('absint', $args['legend_item_id']));
+                $where .= " AND legend_item_id IN ( {$legend_item_id} )";
+            } else {
+                $legend_item_id = absint($args['legend_item_id']);
+                $where .= " AND legend_item_id = {$legend_item_id}";
+            }
 
         }
 
@@ -134,7 +142,7 @@ class WPBS_Object_DB_Events extends WPBS_Object_DB
 
         }
 
-        // Date Month Include
+        // Date Day Include
         if (!empty($args['date_day'])) {
 
             if (is_array($args['date_day'])) {
@@ -151,8 +159,13 @@ class WPBS_Object_DB_Events extends WPBS_Object_DB
 
         }
 
+        // Include custom query
+        if (!empty($args['custom_query'])) {
+            $where .= $args['custom_query'];
+        }
+
         // Orderby
-        $orderby = sanitize_text_field($args['orderby']);
+        $orderby = esc_sql($args['orderby']);
 
         // Order
         $order = ('DESC' === strtoupper($args['order']) ? 'DESC' : 'ASC');
@@ -184,12 +197,15 @@ class WPBS_Object_DB_Events extends WPBS_Object_DB
 			date_month smallint(2) NOT NULL,
 			date_day smallint(2) NOT NULL,
 			calendar_id bigint(10) NOT NULL,
-			booking_id bigint(10) NOT NULL,
-			legend_item_id bigint(10) NOT NULL,
-			description longtext NOT NULL,
-			tooltip longtext NOT NULL,
-            price varchar(100) NOT NULL,
-			PRIMARY KEY  id (id)
+			booking_id bigint(10) NULL DEFAULT '0',
+			legend_item_id bigint(10) NULL DEFAULT '0',
+			description longtext NULL DEFAULT NULL,
+			tooltip longtext NULL DEFAULT NULL,
+            price varchar(100) NULL DEFAULT '',
+            inventory varchar(100) NULL DEFAULT '',
+            minimum_stay varchar(100) NULL DEFAULT '',
+            INDEX idx_calendar_date (calendar_id, date_year, date_month, date_day),
+			PRIMARY KEY (id)
 		) {$charset_collate};";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';

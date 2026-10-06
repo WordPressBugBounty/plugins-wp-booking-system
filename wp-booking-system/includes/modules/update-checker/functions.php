@@ -59,7 +59,7 @@ add_action( 'plugins_loaded', 'wpbs_init_plugin_update_cheker' );
  */
 function wpbs_submenu_page_settings_tabs_register_website( $tabs ) {
 
-	$tabs['register_website'] = __( 'Upgrade to Premium', 'wp-booking-system' );
+	$tabs['register_website'] = __( 'Register Website', 'wp-booking-system' );
 
 	return $tabs;
 
@@ -100,9 +100,9 @@ function wpbs_register_admin_notices_update_checker() {
 
 	wpbs_admin_notices()->register_notice( 'register_website_already_registered', '<p>' . sprintf( __( 'This website is already registered with the provided serial key. Please log into %syour account on our website%s to view all your registered websites.', 'wp-booking-system' ), '<a href="https://www.wpbookingsystem.com/account/" target="_blank">', '</a>' ) . '</p>', 'error' );
 
-	wpbs_admin_notices()->register_notice( 'register_website_serial_expired', '<p>' . sprintf( __( 'The provided serial key is either invalid or expired. You cannot register a website with an invalid or expired serial key. %sPlease visit our website to set up or renew your WP Booking System license%s.', 'wp-booking-system' ), '<a href="https://www.wpbookingsystem.com/" target="_blank">', '</a>' ) . '</p>', 'error' );
+	wpbs_admin_notices()->register_notice( 'register_website_serial_expired', '<p>' . sprintf( __( 'The provided serial key is either invalid or expired. You cannot register a website with an invalid or expired serial key. %sPlease visit our website to set up or renew your WP Booking System license%s.', 'wp-booking-system' ), '<a href="https://www.wpbookingsystem.com/contact/" target="_blank">', '</a>' ) . '</p>', 'error' );
 
-	wpbs_admin_notices()->register_notice( 'register_website_maximum_websites', '<p>' . sprintf( __( 'The maximum number of websites have been registered for this serial key. To upgrade your license, %splease visit our website%s.', 'wp-booking-system' ), '<a href="https://www.wpbookingsystem.com/" target="_blank">', '</a>' ) . '</p>', 'error' );
+	wpbs_admin_notices()->register_notice( 'register_website_maximum_websites', '<p>' . sprintf( __( 'The maximum number of websites have been registered for this serial key. To upgrade your license, %splease visit our website%s.', 'wp-booking-system' ), '<a href="https://www.wpbookingsystem.com/contact/" target="_blank">', '</a>' ) . '</p>', 'error' );
 
 	wpbs_admin_notices()->register_notice( 'register_website_success', '<p>' . sprintf( __( 'Website successfully registered. To view all your registered websites, please check %syour account page on our website%s.', 'wp-booking-system' ), '<a href="https://www.wpbookingsystem.com/account/" target="_blank">', '</a>' ) . '</p>' );	
 
@@ -123,8 +123,6 @@ function wpbs_register_admin_notices_update_checker() {
 
 }
 add_action( 'admin_init', 'wpbs_register_admin_notices_update_checker' );
-
-
 
 
 /**
@@ -150,7 +148,7 @@ function wpbs_register_admin_notice_serial_expired() {
 	if( $transient != -1 )
 		return;
 
-	echo '<div class="notice notice-error">';
+	echo '<div class="wpbs-page-notice notice notice-error">';
 
 		echo '<p>' . sprintf( __( "Your WP Booking System serial key has expired. Plugin updates are not available without a valid serial key. %sPlease click here to purchase a new license%s.", 'wp-booking-system' ), '<a href="https://www.wpbookingsystem.com/" target="_blank">', '</a>' ) . '</p>';
 

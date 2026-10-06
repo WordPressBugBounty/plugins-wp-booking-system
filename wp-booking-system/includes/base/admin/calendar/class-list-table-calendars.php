@@ -37,18 +37,27 @@ Class WPBS_WP_List_Table_Calendars extends WPBS_WP_List_Table {
 	 */
 	public $data = array();
 
+	public $ids = [];
+	public $identifier;
+
 
 	/**
 	 * Constructor
 	 *
 	 */
-	public function __construct() {
+	public function __construct($ids = [], $identifier = false) {
 
 		parent::__construct( array(
 			'plural' 	=> 'wpbs_calendars',
 			'singular' 	=> 'wpbs_calendar',
 			'ajax' 		=> false
 		));
+
+		$this->identifier = $identifier;
+
+		$this->paged_var = $this->identifier ? 'paged_' . $this->identifier : 'paged';
+
+		$this->ids = $ids;
 
 		/**
 		 * Filter the number of calendars shown in the table
@@ -58,10 +67,16 @@ Class WPBS_WP_List_Table_Calendars extends WPBS_WP_List_Table {
 		 */
 		$this->items_per_page = apply_filters( 'wpbs_list_table_calendars_items_per_page', 20 );
 
-		$this->paged = ( ! empty( $_GET['paged'] ) ? (int)$_GET['paged'] : 1 );
+		$this->paged = ( ! empty( $_GET[$this->paged_var] ) ? (int)$_GET[$this->paged_var] : 1 );
+
+		$calendar_args = array('status' => 'active', 'number' => -1, 'search'  => ( ! empty( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : '' ) );
+
+		if($this->ids){
+			$calendar_args['include'] = $this->ids;
+		}
 
 		$this->set_pagination_args( array(
-            'total_items' => wpbs_get_calendars( array( 'number' => -1, 'search'  => ( ! empty( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '' ) ), true ),
+            'total_items' => wpbs_get_calendars( $calendar_args, true ),
             'per_page'    => $this->items_per_page
         ));
 
@@ -74,6 +89,10 @@ Class WPBS_WP_List_Table_Calendars extends WPBS_WP_List_Table {
 
 	}
 
+	public function set_ids($ids){
+		$this->ids = $ids;
+	}
+
 
 	/**
 	 * Returns all the columns for the table
@@ -82,10 +101,11 @@ Class WPBS_WP_List_Table_Calendars extends WPBS_WP_List_Table {
 	public function get_columns() {
 
 		$columns = array(
-			'name'		    => __( 'Name', 'wp-booking-system' ),
-			'id' 		    => __( 'ID', 'wp-booking-system' ),
-			'date_created'  => __( 'Date Created', 'wp-booking-system' ),
-			'date_modified' => __( 'Date Modified', 'wp-booking-system' )
+			'name'		    	=> __( 'Name', 'wp-booking-system' ),
+			'id' 		    	=> __( 'ID', 'wp-booking-system' ),
+			'bookings' 		    => __( 'Bookings', 'wp-booking-system' ),
+			'date_created' 	 	=> __( 'Date Created', 'wp-booking-system' ),
+			'date_modified' 	=> __( 'Date Modified', 'wp-booking-system' ),
 		);
 
 		/**
@@ -127,8 +147,8 @@ Class WPBS_WP_List_Table_Calendars extends WPBS_WP_List_Table {
     	$calendar_status = ( ! empty( $_GET['calendar_status'] ) ? esc_attr( $_GET['calendar_status'] ) : 'active' );
 
         $views = array(
-            'active' => '<a href="' . add_query_arg( array( 'page' => 'wpbs-calendars', 'calendar_status' => 'active', 'paged' => 1, 's' => ( ! empty( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : '' ) ), admin_url( 'admin.php' ) ) . '" ' . ( $calendar_status == 'active' ? 'class="current"' : '' ) . '>' . __( 'Active', 'wp-booking-system' ) . ' <span class="count">(' . wpbs_get_calendars( array( 'status' => 'active', 'search'  => ( ! empty( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : '' ) ), true ) . ')</span></a>',
-            'trash'  => '<a href="' . add_query_arg( array( 'page' => 'wpbs-calendars', 'calendar_status' => 'trash', 'paged' => 1, 's' => ( ! empty( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : '' ) ), admin_url( 'admin.php' ) ) . '" ' . ( $calendar_status == 'trash' ? 'class="current"' : '' ) . '>' . __( 'Trash', 'wp-booking-system' ) . ' <span class="count">(' . wpbs_get_calendars( array( 'status' => 'trash', 'search'  => ( ! empty( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : '' ) ), true ) . ')</span></a>',
+            'active' => '<a href="' . add_query_arg( array( 'page' => 'wpbs-calendars', 'calendar_status' => 'active', $this->paged_var => 1, 's' => ( ! empty( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : '' ) ), admin_url( 'admin.php' ) ) . '" ' . ( $calendar_status == 'active' ? 'class="current"' : '' ) . '>' . __( 'Active', 'wp-booking-system' ) . ' <span class="count">(' . wpbs_get_calendars( array( 'status' => 'active', 'search'  => ( ! empty( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : '' ) ), true ) . ')</span></a>',
+            'trash'  => '<a href="' . add_query_arg( array( 'page' => 'wpbs-calendars', 'calendar_status' => 'trash', $this->paged_var => 1, 's' => ( ! empty( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : '' ) ), admin_url( 'admin.php' ) ) . '" ' . ( $calendar_status == 'trash' ? 'class="current"' : '' ) . '>' . __( 'Trash', 'wp-booking-system' ) . ' <span class="count">(' . wpbs_get_calendars( array( 'status' => 'trash', 'search'  => ( ! empty( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : '' ) ), true ) . ')</span></a>',
         );
 
 		/**
@@ -154,8 +174,16 @@ Class WPBS_WP_List_Table_Calendars extends WPBS_WP_List_Table {
 			'status'  => ( ! empty( $_GET['calendar_status'] ) ? sanitize_text_field( $_GET['calendar_status'] ) : 'active' ),
 			'orderby' => ( ! empty( $_GET['orderby'] ) ? sanitize_text_field( $_GET['orderby'] ) : 'id' ),
 			'order'   => ( ! empty( $_GET['order'] ) ? sanitize_text_field( strtoupper( $_GET['order'] ) ) : 'DESC' ),
-			'search'  => ( ! empty( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '' )
+			'search'  => ( ! empty( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : '' ),
+			
 		);
+
+		if($this->ids){
+			$calendar_args['include'] = $this->ids;
+		}
+
+
+		$calendar_args = apply_filters('wpbs_calendars_list_table_calendars_args', $calendar_args);
 
 		$calendars = wpbs_get_calendars( $calendar_args );
 
@@ -166,9 +194,20 @@ Class WPBS_WP_List_Table_Calendars extends WPBS_WP_List_Table {
 
 			$row_data = $calendar->to_array();
 
-			$bookings = wpbs_get_bookings(array('calendar_id' => $calendar->get('id'), 'is_read' => 0));
+			// Unread Bookings
+			$row_data['bookings_count'] = wpbs_get_bookings(array('calendar_id' => $calendar->get('id'), 'is_read' => 0), true);
 
-			$row_data['bookings_count'] = count($bookings);
+			// Pending Bookings
+			$row_data['bookings_count_pending'] = wpbs_get_bookings(array('calendar_id' => $calendar->get('id'), 'status' => array('pending')), true);
+
+			// Accepted Bookings
+			$row_data['bookings_count_accepted'] = wpbs_get_bookings(array('calendar_id' => $calendar->get('id'), 'status' => array('accepted')), true);
+
+			// Cancelled Bookings
+			$row_data['bookings_count_cancelled'] = wpbs_get_bookings(array('calendar_id' => $calendar->get('id'), 'status' => array('cancelled')), true);
+
+			// Deleted Bookings
+			$row_data['bookings_count_deleted'] = wpbs_get_bookings(array('calendar_id' => $calendar->get('id'), 'status' => array('trash')), true);
 
 			/**
 			 * Filter the calendar row data
@@ -220,6 +259,7 @@ Class WPBS_WP_List_Table_Calendars extends WPBS_WP_List_Table {
 
 			$actions = array(
 				'edit_calendar' => '<a href="' . add_query_arg( array( 'page' => 'wpbs-calendars', 'subpage' => 'edit-calendar', 'calendar_id' => $item['id'] ) , admin_url( 'admin.php' ) ) . '">' . __( 'Edit Calendar', 'wp-booking-system' ) . '</a>',
+				'view_legend'   => '<a href="' . add_query_arg( array( 'page' => 'wpbs-calendars', 'subpage' => 'view-legend', 'calendar_id' => $item['id'] ) , admin_url( 'admin.php' ) ) . '">' . __( 'Edit Calendar Legend', 'wp-booking-system' ) . '</a>',
 				'trash' 		=> '<span class="trash"><a onclick="return confirm( \'' . __( "Are you sure you want to send this calendar to the trash?", "wp-booking-system" ) . ' \' )" href="' . wp_nonce_url( add_query_arg( array( 'page' => 'wpbs-calendars', 'wpbs_action' => 'trash_calendar', 'calendar_id' => $item['id'] ) , admin_url( 'admin.php' ) ), 'wpbs_trash_calendar', 'wpbs_token' ) . '" class="submitdelete">' . __( 'Trash', 'wp-booking-system' ) . '</a></span>'
 			);
 
@@ -251,6 +291,38 @@ Class WPBS_WP_List_Table_Calendars extends WPBS_WP_List_Table {
 
 	}
 
+	/**
+	 * Returns the HTML that will be displayed in the "ID" column
+	 *
+	 * @param array $item 			- data for the current row
+	 * @param string $column_name 	- name of the current column
+	 *
+	 * @return string
+	 *
+	 */
+	public function column_id( $item ) {
+		return '<span class="wpbs-list-table-id">' . $item['id'] . '</span>';
+	}
+
+	/**
+	 * Returns the HTML that will be displayed in the "bookings" column
+	 *
+	 * @param array $item - data for the current row
+	 *
+	 * @return string
+	 *
+	 */
+	public function column_bookings( $item ) {
+
+		$output = '<strong class="wpbs-list-table-pending-bookings" title="'.__('Pending','wp-booking-system').'"><span class="dashicons dashicons-marker"></span> <span class="wpbs-count">'.$item['bookings_count_pending'].'</span></strong>';
+		$output .= '<strong class="wpbs-list-table-accepted-bookings" title="'.__('Accepted','wp-booking-system').'"><span class="dashicons dashicons-yes-alt"></span> <span class="wpbs-count">'.$item['bookings_count_accepted'].'</span></strong>';
+		$output .= '<strong class="wpbs-list-table-cancelled-bookings" title="'.__('Cancelled','wp-booking-system').'"><span class="dashicons dashicons-remove"></span> <span class="wpbs-count">'.$item['bookings_count_cancelled'].'</span></strong>';
+		$output .= '<strong class="wpbs-list-table-deleted-bookings" title="'.__('Deleted','wp-booking-system').'"><span class="dashicons dashicons-dismiss"></span> <span class="wpbs-count">'.$item['bookings_count_deleted'].'</span></strong>';
+
+		return $output;
+
+	}
+
 
 	/**
 	 * Returns the HTML that will be displayed in the "date_created" column
@@ -262,7 +334,7 @@ Class WPBS_WP_List_Table_Calendars extends WPBS_WP_List_Table {
 	 */
 	public function column_date_created( $item ) {
 
-		$output = date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $item['date_created'] ) );
+		$output = wpbs_date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $item['date_created'] ) );
 
 		return $output;
 
@@ -279,7 +351,7 @@ Class WPBS_WP_List_Table_Calendars extends WPBS_WP_List_Table {
 	 */
 	public function column_date_modified( $item ) {
 
-		$output = date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $item['date_modified'] ) );
+		$output = wpbs_date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $item['date_modified'] ) );
 
 		return $output;
 

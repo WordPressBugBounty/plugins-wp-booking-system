@@ -115,6 +115,10 @@ class WPBS_Legend_Item extends WPBS_Base_Object {
 		if( empty( $language_code ) )
 			return $this->name;
 
+		if ( !wpbs_translations_active($language_code) ){
+			return $this->name;
+		}
+
 		$translation = wpbs_get_legend_item_meta( $this->id, 'translation_' . $language_code, true );
 
 		return ( ! empty( $translation ) ? $translation : $this->name );

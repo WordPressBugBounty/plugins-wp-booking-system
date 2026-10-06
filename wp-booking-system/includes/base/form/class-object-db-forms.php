@@ -84,7 +84,7 @@ Class WPBS_Object_DB_Forms extends WPBS_Object_DB {
 		// Status where clause
 		if( ! empty( $args['status'] ) ) {
 
-			$status = sanitize_text_field( $args['status'] );
+			$status = esc_sql( $args['status'] );
 			$where .= " AND status = '{$status}'";
 
 		}
@@ -101,14 +101,14 @@ Class WPBS_Object_DB_Forms extends WPBS_Object_DB {
 		// Include search
 		if( ! empty( $args['search'] ) ) {
 
-			$search = sanitize_text_field( $args['search'] );
+			$search = esc_sql( $args['search'] );
 			$where  .= " AND name LIKE '%%{$search}%%'";
 
 		}
 
 		// Orderby
-		$orderby = in_array($args['orderby'], array('id', 'name', 'date_created', 'date_modified', 'status')) ? $args['orderby'] : 'id';
-		
+		$orderby = in_array($args['orderby'], array('id', 'name', 'date_created', 'date_modified', 'status')) ? esc_sql($args['orderby']) : 'id';
+
 		// Order
 		$order = ( 'DESC' === strtoupper( $args['order'] ) ? 'DESC' : 'ASC' );
 
@@ -139,7 +139,7 @@ Class WPBS_Object_DB_Forms extends WPBS_Object_DB {
 			date_modified datetime NOT NULL,
 			status text NOT NULL,
 			fields longtext NOT NULL,
-			PRIMARY KEY  id (id)
+			PRIMARY KEY  (id)
 		) {$charset_collate};";
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );

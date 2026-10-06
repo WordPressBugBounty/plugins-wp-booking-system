@@ -74,7 +74,7 @@ class WPBS_Booking extends WPBS_Base_Object {
 	protected $status;
 
 	/**
-	 * Wether or not the booking is read
+	 * whether or not the booking is read
 	 *
 	 * @access protected
 	 * @var    int
@@ -99,5 +99,32 @@ class WPBS_Booking extends WPBS_Base_Object {
 	 *
 	 */
 	protected $date_modified;
+
+	/**
+	 * The random invoice hash
+	 *
+	 * @access protected
+	 * @var    string
+	 *
+	 */
+	protected $invoice_hash;
+
+	/**
+	 * The random cancellation hash
+	 *
+	 * @access protected
+	 * @var    string
+	 *
+	 */
+	protected $cancellation_hash;
+
+	/**
+	 * Helper for the Booking Manager add-on
+	 *
+	 * @access protected
+	 * @var    array
+	 *
+	 */
+	public $dynamic_fields;
 
 }

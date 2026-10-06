@@ -72,7 +72,7 @@ Class WPBS_Object_Meta_DB_Forms extends WPBS_Object_Meta_DB {
 			form_id bigint(20) NOT NULL DEFAULT '0',
 			meta_key varchar(255) DEFAULT NULL,
 			meta_value longtext,
-			PRIMARY KEY  (meta_id),
+			PRIMARY KEY (meta_id),
 			KEY form_id (form_id),
 			KEY meta_key (meta_key(191))
 		) {$charset_collate};";

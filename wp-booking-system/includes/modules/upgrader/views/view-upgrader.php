@@ -6,16 +6,9 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 ?>
 
 <div class="wrap wpbs-wrap wpbs-wrap-upgrader">
-		
-	<!-- Icon -->
-	<div id="wpbs-add-new-calendar-icon">
-		<div class="wpbs-icon-wrap">
-			<span class="dashicons dashicons-calendar-alt"></span>
-		</div>
-	</div>
-
+	
 	<!-- Heading -->
-	<h1 id="wpbs-add-new-calendar-heading"><?php echo __( 'Welcome to WP Booking System v.2', 'wp-booking-system' ); ?></h1>
+	<h1><?php echo __( 'Welcome to WP Booking System v.5', 'wp-booking-system' ); ?></h1>
 
 	<div id="wpbs-upgrader-content">
 

@@ -62,14 +62,7 @@ class WPBS_Calendar_Editor_Outputter
      */
     protected $bookings = array();
 
-    /**
-     * The list of events from the linked iCal feeds
-     *
-     * @access protected
-     * @var    array
-     *
-     */
-    protected $ical_events = array();
+
 
     /**
      * Custom calendar data arranged by date
@@ -101,9 +94,18 @@ class WPBS_Calendar_Editor_Outputter
     protected $default_price = 0;
 
     /**
+     * The default inventory for events
+     *
+     * @access protected
+     * @var    string
+     *
+     */
+    protected $default_inventory = 0;
+
+    /**
      * Constructor
      *
-     * @param int   $calendar    - the calendar for which to print the editable calendar fields
+     * @param WPBS_Calendar   $calendar    - the calendar for which to print the editable calendar fields
      * @param array $args          - arguments from which to build the calendar fields
      * @param array $data          - extra data to be populated in the calendar fields on top of the
      *                                already saved events
@@ -118,6 +120,8 @@ class WPBS_Calendar_Editor_Outputter
             'booking_view' => false,
             'booking_start_date' => '',
             'booking_end_date' => '',
+            'language' => wpbs_get_locale(),
+            'skip_ical_events' => false
         );
 
         /**
@@ -151,10 +155,9 @@ class WPBS_Calendar_Editor_Outputter
          */
         foreach ($this->legend_items as $legend_item) {
 
-            if ($legend_item->get('is_default') == 1) {
+            if ($legend_item->get('is_default')) {
                 $this->default_legend_item = $legend_item;
             }
-
         }
 
         /**
@@ -167,8 +170,7 @@ class WPBS_Calendar_Editor_Outputter
          * Set the calendar bookings
          *
          */
-        $this->bookings = wpbs_get_bookings_as_events($calendar->get('id'), $this->events);
-
+        $this->bookings = wpbs_get_bookings_as_events($calendar->get('id'), $this->events, $this->args['current_year'], $this->args['current_month']);
 
         /**
          * Set the calendar data
@@ -177,10 +179,14 @@ class WPBS_Calendar_Editor_Outputter
         $this->data = $data;
 
         /**
-		 * Set the default price
-		 */
-		$this->default_price = wpbs_get_calendar_meta($this->calendar->get('id'), 'default_price', true);
+         * Set the default price
+         */
+        $this->default_price = wpbs_get_calendar_meta($this->calendar->get('id'), 'default_price', true);
 
+        /**
+         * Set the default inventory
+         */
+        $this->default_inventory = wpbs_get_calendar_meta($this->calendar->get('id'), 'default_inventory', true);
     }
 
     /**
@@ -208,7 +214,6 @@ class WPBS_Calendar_Editor_Outputter
         for ($i = $start_day; $i <= $total_days; $i++) {
 
             $output .= $this->get_display_date($this->args['current_year'], $this->args['current_month'], $i);
-
         }
 
         /**
@@ -220,7 +225,6 @@ class WPBS_Calendar_Editor_Outputter
         $output .= '</div>';
 
         return $output;
-
     }
 
     /**
@@ -240,16 +244,16 @@ class WPBS_Calendar_Editor_Outputter
         $output = '<div class="wpbs-calendar-date">';
 
         $output .= '<div class="wpbs-calendar-date-legend-item-header">' . __('Availability', 'wp-booking-system') . '</div>';
-        $output .= '<div class="wpbs-calendar-date-booking-ids-header">' . wpbs_get_output_tooltip(__('In this column you can see the bookings associated with each date.', 'wp-booking-system')) . '</div>';
+        $output .= '<div class="wpbs-calendar-date-booking-ids-header">&nbsp;</div>';
 
-        $output .= apply_filters('wpbs_calendar_editor_columns_header_before_description', '');
+        $output .= apply_filters('wpbs_calendar_editor_columns_header_before_description', '', $this->calendar->get('id'));
 
-        $output .= '<div class="wpbs-calendar-date-description-header">' . __('Description', 'wp-booking-system') . wpbs_get_output_tooltip(__('You can use the description field of the date to add private information regarding your booking. This information will not be displayed anywhere else, but here.', 'wp-booking-system')) . '</div>';
+        $output .= '<div class="wpbs-calendar-date-description-header"><abbr title="' . __('You can use the description field of the date to add private information regarding your booking. This information will not be displayed publicly on the website, but it will be used as the event description when exporting iCalendar events.', 'wp-booking-system') . '">' . __('Description', 'wp-booking-system') . '</abbr></div>';
+        $output .= '<div class="wpbs-calendar-date-tooltip-header"><abbr title="' . __('You can use the tooltip field of the date to add information that you wish users to see when they hover over the calendar date in the front-end part of your website.', 'wp-booking-system') . '">' . __('Tooltip', 'wp-booking-system') . '</abbr></div>';
 
         $output .= '</div>';
 
         return $output;
-
     }
 
     /**
@@ -271,7 +275,6 @@ class WPBS_Calendar_Editor_Outputter
          */
         $data = $this->get_data_by_date($year, $month, $day);
         $event = $this->get_event_by_date($year, $month, $day);
-        $ical_event = $this->get_ical_event_by_date($year, $month, $day);
 
         /**
          * Prepare output
@@ -279,37 +282,25 @@ class WPBS_Calendar_Editor_Outputter
          */
         $output = '<div class="wpbs-calendar-date">';
 
-        if (!is_null($ical_event)) {
+        $overwrite_events = true;
 
-            // Get the date legend item
-            $output .= $this->get_display_date_legend_item($year, $month, $day, $ical_event, null);
-
-            /**
-             * Prepare iCal description output
-             *
-             */
-            $output .= '<div class="wpbs-calendar-date-description-ical">';
-
-            $output .= '<span class="dashicons dashicons-calendar-alt"></span>';
-            $output .= '<input type="text" readonly value="' . esc_attr($ical_event->get('description')) . '" />';
-
-            $output .= '</div>';
-
-        } else {
+       
+        
 
             // Get the date legend item
             $output .= $this->get_display_date_legend_item($year, $month, $day, $event, $data);
 
-            
-            // Get the date description
+
+            // Get the booking IDs
             $output .= $this->get_display_booking_id($year, $month, $day, $event, $data);
 
-            $output .= apply_filters('wpbs_calendar_editor_columns_before_description', '', $year, $month, $day, $event, $data, $this->default_price);
+            $output .= apply_filters('wpbs_calendar_editor_columns_before_description', '', $year, $month, $day, $event, $data, $this->default_price, $this->default_inventory, $this->calendar, false);
 
             // Get the date description
             $output .= $this->get_display_date_description($year, $month, $day, $event, $data);
 
-            
+            // Get the date tooltip
+            $output .= $this->get_display_date_tooltip($year, $month, $day, $event, $data);
 
             // Set-up extra data that can be added by others
             $output .= '<div class="wpbs-calendar-date-meta">';
@@ -327,13 +318,11 @@ class WPBS_Calendar_Editor_Outputter
             $output .= apply_filters('wpbs_calendar_editor_display_date', '', $year, $month, $day, $event, $data);
 
             $output .= '</div>';
-
-        }
+    
 
         $output .= '</div>';
 
         return $output;
-
     }
 
     /**
@@ -358,14 +347,12 @@ class WPBS_Calendar_Editor_Outputter
         $selected_id = '';
         $selected = null;
 
-        if (!is_null($data)) {
+        if (!is_null($data) && isset($data['legend_item_id'])) {
 
             $selected_id = $data['legend_item_id'];
-
         } elseif (!is_null($event)) {
 
             $selected_id = $event->get('legend_item_id');
-
         }
 
         foreach ($this->legend_items as $legend_item) {
@@ -374,7 +361,6 @@ class WPBS_Calendar_Editor_Outputter
                 $selected = $legend_item;
                 break;
             }
-
         }
 
         // If none of the existing legend items is the selected one,
@@ -384,15 +370,17 @@ class WPBS_Calendar_Editor_Outputter
             $selected_id = $selected->get('id');
         }
 
+       
+
         /**
          * Prepare output
          *
          */
-        $output = '<div class="wpbs-calendar-date-legend-item wpbs-calendar-date-legend-item-' . esc_attr($selected->get('id')) . '">';
+        $output = '<div class="wpbs-calendar-date-legend-item wpbs-calendar-date-legend-item-' . esc_attr($selected_id) . '">';
 
         $output .= '<div class="wpbs-legend-item-icon-wrapper">';
-        $output .= '<div class="wpbs-date-inner">' . esc_attr($day) . '</div>';
-        $output .= wpbs_get_legend_item_icon($selected->get('id'), $selected->get('type'));
+        $output .= '<div class="wpbs-date-inner"><span>' . esc_attr($day) . '</span><small>' . wpbs_date_i18n('D', mktime(0, 0, 0, $month, $day, $year)) . '</small></div>';
+        $output .= wpbs_get_legend_item_icon($selected_id, $selected->get('type'));
         $output .= '</div>';
 
         $output .= '<select data-name="legend_item_id" data-year="' . esc_attr($year) . '" data-month="' . esc_attr($month) . '" data-day="' . esc_attr($day) . '" ' . (!is_null($event) && is_null($event->get('id')) ? 'disabled' : '') . '>';
@@ -400,14 +388,12 @@ class WPBS_Calendar_Editor_Outputter
         foreach ($this->legend_items as $legend_item) {
 
             $output .= '<option value="' . esc_attr($legend_item->get('id')) . '" ' . selected($selected_id, $legend_item->get('id'), false) . ' data-type="' . esc_attr($legend_item->get('type')) . '">' . $legend_item->get_name($this->args['language']) . '</option>';
-
         }
 
         $output .= '</select>';
         $output .= '</div>';
 
         return $output;
-
     }
 
     /**
@@ -425,10 +411,10 @@ class WPBS_Calendar_Editor_Outputter
     protected function get_display_booking_id($year, $month, $day, $event, $data)
     {
 
-        if($this->booking_view){
+        if ($this->booking_view) {
             return '';
         }
-        
+
         /**
          * Prepare output
          *
@@ -437,13 +423,18 @@ class WPBS_Calendar_Editor_Outputter
         $events = $this->get_event_by_booking($year, $month, $day);
 
         $output = '<div class="wpbs-calendar-date-booking-ids">';
-        
+
+        $bookings_to_display = apply_filters('wpbs_calendar_outputter_bookings_to_display', 5);
+
         if (!empty($events)) {
-            foreach ($events as $event) {
+            foreach ($events as $i => $event) {
+                $booking = wpbs_get_booking($event->get('booking_id'));
+                $output .= '<a href="'.add_query_arg(array('page' => 'wpbs-calendars', 'subpage' => 'edit-calendar', 'calendar_id' => $booking->get('calendar_id'), 'booking_id' => $booking->get('id')), admin_url('admin.php')).'" class="wpbs-calendar-date-booking-id wpbs-open-booking-details ' . ($i >= $bookings_to_display ? 'wpbs-extra-bookings-hidden' : '') . ' wpbs-booking-color-status-' . $booking->get('status') . ' wpbs-booking-color-' . ($event->get('booking_id') % 10) . ' " data-id="' . $event->get('booking_id') . '">#' . $event->get('booking_id') . '</a>';
 
-                $booking = wpbs_get_booking( $event->get('booking_id') );
-
-                $output .= '<a href="#" class="wpbs-calendar-date-booking-id wpbs-open-booking-details wpbs-booking-color-status-'.$booking->get('status').' wpbs-booking-color-' . ($event->get('booking_id') % 10) . ' " data-id="' . $event->get('booking_id') . '">#' . $event->get('booking_id') . '</a>';
+                // Only show the first 5 bookings.
+                if ($i == ($bookings_to_display - 1) && count($events) > $bookings_to_display) {
+                    $output .= '<a class="wpbs-calendar-date-booking-id wpbs-booking-color-status-hidden">+' . (count($events) - $bookings_to_display) . '</a>';
+                }
             }
         } else {
             $output .= '<div class="wpbs-calendar-date-booking-id wpbs-calendar-date-booking-id-color-10">&nbsp;</div>';
@@ -478,11 +469,9 @@ class WPBS_Calendar_Editor_Outputter
         if (!is_null($data) && isset($data['description'])) {
 
             $value = $data['description'];
-
         } elseif (!is_null($event)) {
 
             $value = $event->get('description');
-
         }
 
         /**
@@ -497,7 +486,51 @@ class WPBS_Calendar_Editor_Outputter
         $output .= '</div>';
 
         return $output;
+    }
 
+    /**
+     * Constructs and returns the HTML for the date tooltip field
+     *
+     * @param int $year
+     * @param int $month
+     * @param int $day
+     * @param mixed WPBS_Event|null
+     * @param mixed array|null
+     *
+     * @return string
+     *
+     */
+    protected function get_display_date_tooltip($year, $month, $day, $event, $data)
+    {
+
+        /**
+         * Set selected value
+         *
+         */
+        $value = '';
+
+        if (!is_null($data) && isset($data['tooltip'])) {
+
+            $value = $data['tooltip'];
+        } elseif (!is_null($event)) {
+
+            $value = $event->get('tooltip');
+        }
+
+        /**
+         * Prepare output
+         *
+         */
+        $output = '<div class="wpbs-calendar-date-tooltip">';
+
+        $output .= '<span class="dashicons dashicons-admin-comments"></span>';
+
+        $tooltip = '<input type="text" value="' . esc_attr($value) . '" data-name="tooltip" data-year="' . esc_attr($year) . '" data-month="' . esc_attr($month) . '" data-day="' . esc_attr($day) . '" />';
+        $output .= apply_filters('wpbs_calendar_editor_tooltip_input', $tooltip, $value, $year, $month, $day, $event, $data);
+
+        $output .= '</div>';
+
+        return $output;
     }
 
     /**
@@ -519,11 +552,9 @@ class WPBS_Calendar_Editor_Outputter
             if ($event->get('date_year') == $year && $event->get('date_month') == $month && $event->get('date_day') == $day) {
                 return $event;
             }
-
         }
 
         return null;
-
     }
 
     /**
@@ -553,34 +584,9 @@ class WPBS_Calendar_Editor_Outputter
         }
 
         return array();
-
     }
 
-    /**
-     * Passes through all stored ical events and searches for the event that matches the given date
-     * If an event is found it is returned, else null is returned
-     *
-     * @param int $year
-     * @param int $month
-     * @param int $day
-     *
-     * @return mixed WPBS_Event|null
-     *
-     */
-    protected function get_ical_event_by_date($year, $month, $day)
-    {
-
-        foreach ($this->ical_events as $event) {
-
-            if ($event->get('date_year') == $year && $event->get('date_month') == $month && $event->get('date_day') == $day) {
-                return $event;
-            }
-
-        }
-
-        return null;
-
-    }
+   
 
     /**
      * Passes through all stored calendar data and searches for the data that matches the given date
@@ -601,7 +607,6 @@ class WPBS_Calendar_Editor_Outputter
         }
 
         return null;
-
     }
 
     /**
@@ -615,9 +620,6 @@ class WPBS_Calendar_Editor_Outputter
 
         $output = '<style>';
 
-        // Set the parent calendar class
-        $calendar_parent_class = '.wpbs-calendar-editor';
-
         /**
          * Legend Items CSS
          *
@@ -627,22 +629,27 @@ class WPBS_Calendar_Editor_Outputter
             // Background colors
             $colors = $legend_item->get('color');
 
-            $output .= $calendar_parent_class . ' .wpbs-legend-item-icon-' . esc_attr($legend_item->get('id')) . ' div:first-of-type { background-color: ' . (!empty($colors[0]) ? esc_attr($colors[0]) : 'transparent') . '; }';
-            $output .= $calendar_parent_class . ' .wpbs-legend-item-icon-' . esc_attr($legend_item->get('id')) . ' div:nth-of-type(2) { background-color: ' . (!empty($colors[1]) ? esc_attr($colors[1]) : 'transparent') . '; }';
+            $output .= '.wpbs-legend-item-icon-' . esc_attr($legend_item->get('id')) . ' div:first-of-type { background-color: ' . (!empty($colors[0]) ? esc_attr($colors[0]) : 'transparent') . '; }';
+            $output .= '.wpbs-legend-item-icon-' . esc_attr($legend_item->get('id')) . ' div:nth-of-type(2) { background-color: ' . (!empty($colors[1]) ? esc_attr($colors[1]) : 'transparent') . '; }';
+
+            $output .= '.wpbs-legend-item-icon-' . esc_attr($legend_item->get('id')) . ' div:first-of-type svg { fill: ' . (! empty($colors[0]) ? esc_attr($colors[0]) : 'transparent') . ' !important; }';
+            $output .= '.wpbs-legend-item-icon-' . esc_attr($legend_item->get('id')) . ' div:nth-of-type(2) svg { fill: ' . (! empty($colors[1]) ? esc_attr($colors[1]) : 'transparent') . ' !important; }';
 
             // Text color
             $color_text = $legend_item->get('color_text');
 
             if (!empty($color_text)) {
-                $output .= $calendar_parent_class . ' .wpbs-calendar-date-legend-item-' . esc_attr($legend_item->get('id')) . ' .wpbs-date-inner { color: ' . esc_attr($color_text) . '; }';
+                $output .= '.wpbs-calendar-date-legend-item-' . esc_attr($legend_item->get('id')) . ' .wpbs-date-inner { color: ' . esc_attr($color_text) . '; }';
             }
 
+            if ($legend_item->get('is_default')) {
+                $output .= '.wpbs-wrap-edit-calendar .wpbs-ical-changeover .wpbs-legend-item-icon:after {background-color: ' . $colors[0] . ';}';
+            }
         }
 
         $output .= '</style>';
 
         return $output;
-
     }
 
     /**
@@ -653,7 +660,5 @@ class WPBS_Calendar_Editor_Outputter
     {
 
         echo $this->get_display();
-
     }
-
 }

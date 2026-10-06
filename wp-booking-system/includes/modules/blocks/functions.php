@@ -1,7 +1,7 @@
 <?php
 
 // Exit if accessed directly
-if (!defined('ABSPATH')) exit;
+if ( ! defined( 'ABSPATH' ) ) exit;
 
 
 /**
@@ -9,8 +9,7 @@ if (!defined('ABSPATH')) exit;
  * available in the plugin
  *
  */
-function wpbs_register_block_categories($categories)
-{
+function wpbs_register_block_categories( $categories, $post ) {
 
 	$categories[] = array(
 		'slug'  => 'wp-booking-system',
@@ -19,64 +18,66 @@ function wpbs_register_block_categories($categories)
 	);
 
 	return $categories;
+
 }
-add_filter('block_categories_all', 'wpbs_register_block_categories', 10, 1);
+add_filter( 'block_categories_all', 'wpbs_register_block_categories', 10, 2 );
 
 
 /**
  * Adds the needed JavaScript variables up in the WordPress admin head
  *
  */
-function wpbs_add_javascript_variables()
-{
+function wpbs_add_javascript_variables() {
 
-	if (!function_exists('get_current_screen'))
+	if( ! function_exists( 'get_current_screen' ) )
 		return;
 
 	$screen = get_current_screen();
 
-	if (is_null($screen))
+	if( is_null( $screen ) )
 		return;
 
 
-	if (isset($_GET['page']) && $_GET['page'] == 'wpbs-calendars' && isset($_GET['subpage']) && $_GET['subpage'] == 'edit-calendar') {
+	if(isset($_GET['page']) && $_GET['page'] == 'wpbs-calendars' && isset($_GET['subpage']) && $_GET['subpage'] == 'edit-calendar'){
 		return;
 	}
 
 	global $wp_customize;
-
-	if (isset($wp_customize)) {
-		return;
+	
+	if( isset($wp_customize) ){
+	    return;
 	}
 
-	$settings = get_option('wpbs_settings', array());
+	$settings = get_option( 'wpbs_settings', array() );
 
 	echo '<script type="text/javascript">';
 
 	// Add calendars to be globally available
-	$calendars = wpbs_get_calendars(array('number' => -1, 'status' => 'active'));
+	$calendars = wpbs_get_calendars( array( 'number' => -1, 'status' => 'active' ) );
 
 	echo 'var wpbs_calendars = [';
 
-	foreach ($calendars as $key => $calendar) {
-		echo '{ "id" : ' . $calendar->get('id') . ', "name" : "' . $calendar->get('name') . '" }';
+	foreach( $calendars as $key => $calendar ) {
+		echo '{ "id" : ' . $calendar->get('id') . ', "name" : "' . esc_attr(addslashes($calendar->get('name'))) . '" }';
 
-		if ($key != count($calendars) - 1)
+		if( $key != count( $calendars ) - 1 )
 			echo ',';
+
 	}
 
 	echo '];';
 
 	// Add Forms to be globally available
-	$forms = wpbs_get_forms(array('number' => -1, 'status' => 'active'));
+	$forms = wpbs_get_forms( array( 'number' => -1, 'status' => 'active' ) );
 
 	echo 'var wpbs_forms = [';
 
-	foreach ($forms as $key => $form) {
-		echo '{ "id" : ' . $form->get('id') . ', "name" : "' . $form->get('name') . '" }';
+	foreach( $forms as $key => $form ) {
+		echo '{ "id" : ' . $form->get('id') . ', "name" : "' . esc_attr(addslashes($form->get('name'))) . '" }';
 
-		if ($key != count($forms) - 1)
+		if( $key != count( $forms ) - 1 )
 			echo ',';
+
 	}
 
 	echo '];';
@@ -85,19 +86,21 @@ function wpbs_add_javascript_variables()
 	$languages = wpbs_get_languages();
 
 	echo 'var wpbs_languages = [';
+	
+	if( ! empty( $settings['active_languages'] ) ) {
 
-	if (!empty($settings['active_languages'])) {
+		foreach( $settings['active_languages'] as $key => $code ) {
 
-		foreach ($settings['active_languages'] as $key => $code) {
-
-			if (empty($languages[$code]))
+			if( empty( $languages[$code] ) )
 				continue;
 
 			echo '{ "code" : "' . $code . '", "name" : "' . $languages[$code] . '" }';
 
-			if ($key != count($settings['active_languages']) - 1)
+			if( $key != count( $settings['active_languages'] ) - 1 )
 				echo ',';
+
 		}
+
 	}
 
 	echo '];';
@@ -106,7 +109,8 @@ function wpbs_add_javascript_variables()
 
 
 	// Enqueue front-end scripts on the admin part
-	wp_register_script('wpbs-front-end-script', WPBS_PLUGIN_DIR_URL . 'assets/js/script-front-end.js', array('jquery'), WPBS_VERSION, true);
-	wp_enqueue_script('wpbs-front-end-script');
+	wp_register_script( 'wpbs-front-end-script', WPBS_PLUGIN_DIR_URL . 'assets/js/script-front-end.min.js', array( 'jquery' ), WPBS_VERSION, true );
+	wp_enqueue_script( 'wpbs-front-end-script' );
+
 }
-add_action('admin_enqueue_scripts', 'wpbs_add_javascript_variables', 10);
+add_action( 'admin_enqueue_scripts', 'wpbs_add_javascript_variables', 10 );

@@ -66,7 +66,7 @@ class Elementor_WPBS_Single_Calendar_Widget extends \Elementor\Widget_Base
      */
     public function get_custom_help_url()
     {
-        return 'https://wordpress.org/plugins/wp-booking-system/';
+        return 'https://www.wpbookingsystem.com/documentation/inserting-a-calendar-with-elementor/';
     }
 
     /**
@@ -111,7 +111,7 @@ class Elementor_WPBS_Single_Calendar_Widget extends \Elementor\Widget_Base
         $this->start_controls_section(
             'calendar',
             [
-                'label' => esc_html__('Options', 'wp-booking-system'),
+                'label' => esc_html__('Calendar', 'wp-booking-system'),
                 'tab' => \Elementor\Controls_Manager::TAB_CONTENT,
             ]
         );
@@ -132,6 +132,15 @@ class Elementor_WPBS_Single_Calendar_Widget extends \Elementor\Widget_Base
             ]
         );
 
+        $this->end_controls_section();
+
+        $this->start_controls_section(
+            'form',
+            [
+                'label' => esc_html__('Form', 'wp-booking-system'),
+                'tab' => \Elementor\Controls_Manager::TAB_CONTENT,
+            ]
+        );
 
         $forms = wpbs_get_forms(array('status' => 'active'));
         $formDropdown = array('0' => '-');
@@ -149,7 +158,15 @@ class Elementor_WPBS_Single_Calendar_Widget extends \Elementor\Widget_Base
             ]
         );
 
-     
+        $this->end_controls_section();
+
+        $this->start_controls_section(
+            'calendar_options',
+            [
+                'label' => esc_html__('Calendar Options', 'wp-booking-system'),
+                'tab' => \Elementor\Controls_Manager::TAB_CONTENT,
+            ]
+        );
 
         $this->add_control(
             'title',
@@ -177,6 +194,174 @@ class Elementor_WPBS_Single_Calendar_Widget extends \Elementor\Widget_Base
             ]
         );
 
+        $this->add_control(
+            'legend_position',
+            [
+                'label' => esc_html__('Legend Position', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    'side' => __('Side', 'wp-booking-system'),
+                    'top' => __('Top', 'wp-booking-system'),
+                    'bottom' => __('Bottom', 'wp-booking-system'),
+                ),
+                'default' => 'side',
+            ]
+        );
+
+        $this->add_control(
+            'display',
+            [
+                'label' => esc_html__('Months to Display', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array_combine(range(1, 24), range(1, 24)),
+                'default' => '1',
+            ]
+        );
+
+        $this->add_control(
+            'year',
+            [
+                'label' => esc_html__('Start Year', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => [0 => __('Current Year', 'wp-booking-system')] + array_combine(range(date('Y'), date('Y') + 10), range(date('Y'), date('Y') + 10)),
+                'default' => '0',
+            ]
+        );
+
+        $this->add_control(
+            'month',
+            [
+                'label' => esc_html__('Start Month', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    0 => __( 'Current Month', 'wp-booking-system' ),
+                    1 => __( 'January', 'wp-booking-system' ),
+                    2 => __( 'February', 'wp-booking-system' ),
+                    3 => __( 'March', 'wp-booking-system' ),
+                    4 => __( 'April', 'wp-booking-system' ),
+                    5 => __( 'May', 'wp-booking-system' ),
+                    6 => __( 'June', 'wp-booking-system' ),
+                    7 => __( 'July', 'wp-booking-system' ),
+                    8 => __( 'August', 'wp-booking-system' ),
+                    9 => __( 'September', 'wp-booking-system' ),
+                    10 => __( 'October', 'wp-booking-system' ),
+                    11 => __( 'November', 'wp-booking-system' ),
+                    12 => __( 'December', 'wp-booking-system')
+                ),
+                'default' => '0',
+            ]
+        );
+
+        $this->add_control(
+            'show_first_available_date',
+            [
+                'label' => esc_html__('Show First Available Month', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    'yes' => __('Yes', 'wp-booking-system'),
+                    'no' => __('No', 'wp-booking-system'),
+                ),
+                'default' => 'no',
+            ]
+        );
+
+        $this->add_control(
+            'dropdown',
+            [
+                'label' => esc_html__('Display Dropdown', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    'yes' => __('Yes', 'wp-booking-system'),
+                    'no' => __('No', 'wp-booking-system'),
+                ),
+                'default' => 'yes',
+            ]
+        );
+
+        $this->add_control(
+            'start',
+            [
+                'label' => esc_html__('Week Start Day', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    '1' => __('Monday', 'wp-booking-system'),
+                    '2' => __('Tuesday', 'wp-booking-system'),
+                    '3' => __('Wednesday', 'wp-booking-system'),
+                    '4' => __('Thursday', 'wp-booking-system'),
+                    '5' => __('Friday', 'wp-booking-system'),
+                    '6' => __('Saturday', 'wp-booking-system'),
+                    '7' => __('Sunday', 'wp-booking-system'),
+                ),
+                'default' => '1',
+            ]
+        );
+
+        $this->add_control(
+            'history',
+            [
+                'label' => esc_html__('Show History', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    '1' => __('Display booking history', 'wp-booking-system'),
+                    '2' => __('Replace booking history with the default legend item', 'wp-booking-system'),
+                    '3' => __('Use the Booking History Color from the Settings', 'wp-booking-system'),
+                ),
+                'default' => '1',
+            ]
+        );
+
+        $this->add_control(
+            'tooltip',
+            [
+                'label' => esc_html__('Display Tooltips', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    '1' => __('No', 'wp-booking-system'),
+                    '2' => __('Yes', 'wp-booking-system'),
+                    '3' => __('Yes, with red indicator', 'wp-booking-system'),
+                ),
+                'default' => '1',
+            ]
+        );
+
+        $this->add_control(
+            'highlighttoday',
+            [
+                'label' => esc_html__('Highlight Today', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    'no' => __('No', 'wp-booking-system'),
+                    'yes' => __('Yes', 'wp-booking-system'),
+                ),
+                'default' => 'no',
+            ]
+        );
+
+        $this->add_control(
+            'weeknumbers',
+            [
+                'label' => esc_html__('Show Week Numbers', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    'yes' => __('Yes', 'wp-booking-system'),
+                    'no' => __('No', 'wp-booking-system'),
+                ),
+                'default' => 'no',
+            ]
+        );
+
+        $this->add_control(
+            'show_prices',
+            [
+                'label' => esc_html__('Show Prices', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    'yes' => __('Yes', 'wp-booking-system'),
+                    'no' => __('No', 'wp-booking-system'),
+                ),
+                'default' => 'no',
+            ]
+        );
 
         $settings = get_option('wpbs_settings');
         $languages = wpbs_get_languages();
@@ -203,6 +388,139 @@ class Elementor_WPBS_Single_Calendar_Widget extends \Elementor\Widget_Base
                 'type' => \Elementor\Controls_Manager::SELECT,
                 'options' => $languagesDropdown,
                 'default' => 'auto',
+            ]
+        );
+
+        $this->end_controls_section();
+
+        $this->start_controls_section(
+            'form_options',
+            [
+                'label' => esc_html__('Form Options', 'wp-booking-system'),
+                'tab' => \Elementor\Controls_Manager::TAB_CONTENT,
+            ]
+        );
+
+        $this->add_control(
+            'form_position',
+            [
+                'label' => esc_html__('Form Position', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    'bottom' => __('Bottom', 'wp-booking-system'),
+                    'side' => __('Side', 'wp-booking-system'),
+                ),
+                'default' => 'bottom',
+            ]
+        );
+
+        $this->add_control(
+            'auto_pending',
+            [
+                'label' => esc_html__('Automatically Block Dates', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    'yes' => __('Yes', 'wp-booking-system'),
+                    'no' => __('No', 'wp-booking-system'),
+                ),
+                'default' => 'yes',
+            ]
+        );
+
+        $this->add_control(
+            'selection_type',
+            [
+                'label' => esc_html__('Selection Type', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    'multiple' => __('Date Range', 'wp-booking-system'),
+                    'single' => __('Single Day', 'wp-booking-system'),
+                ),
+                'default' => 'multiple',
+            ]
+        );
+
+        $this->add_control(
+            'selection_style',
+            [
+                'label' => esc_html__('Selection Style', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    'normal' => __('Normal', 'wp-booking-system'),
+                    'split' => __('Split', 'wp-booking-system'),
+                ),
+                'default' => 'split',
+            ]
+        );
+
+        $this->add_control(
+            'minimum_days',
+            [
+                'label' => esc_html__('Minimum Days', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'min' => 0,
+                'default' => 0,
+            ]
+        );
+
+        $this->add_control(
+            'maximum_days',
+            [
+                'label' => esc_html__('Maximum Days', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::NUMBER,
+                'min' => 0,
+                'default' => 0,
+            ]
+        );
+
+        $this->add_control(
+            'booking_start_day',
+            [
+                'label' => esc_html__('Booking Start Day', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    '0' => '-',
+                    '1' => __('Monday', 'wp-booking-system'),
+                    '2' => __('Tuesday', 'wp-booking-system'),
+                    '3' => __('Wednesday', 'wp-booking-system'),
+                    '4' => __('Thursday', 'wp-booking-system'),
+                    '5' => __('Friday', 'wp-booking-system'),
+                    '6' => __('Saturday', 'wp-booking-system'),
+                    '7' => __('Sunday', 'wp-booking-system'),
+                ),
+                'default' => '0',
+            ]
+        );
+
+        $this->add_control(
+            'booking_end_day',
+            [
+                'label' => esc_html__('Booking End Day', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    '0' => '-',
+                    '1' => __('Monday', 'wp-booking-system'),
+                    '2' => __('Tuesday', 'wp-booking-system'),
+                    '3' => __('Wednesday', 'wp-booking-system'),
+                    '4' => __('Thursday', 'wp-booking-system'),
+                    '5' => __('Friday', 'wp-booking-system'),
+                    '6' => __('Saturday', 'wp-booking-system'),
+                    '7' => __('Sunday', 'wp-booking-system'),
+                ),
+                'default' => '0',
+            ]
+        );
+
+        $this->add_control(
+            'show_date_selection',
+            [
+                'label' => esc_html__('Show Date Selection', 'wp-booking-system'),
+                'type' => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    'yes' => __('Yes', 'wp-booking-system'),
+                    'no' => __('No', 'wp-booking-system'),
+                ),
+                'default' => 'no',
             ]
         );
 

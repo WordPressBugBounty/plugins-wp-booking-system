@@ -1,91 +1,115 @@
 <?php
 
 // Exit if accessed directly
-if ( ! defined( 'ABSPATH' ) ) exit;
+if (! defined('ABSPATH')) exit;
+
+$tabs = $this->get_tabs();
+$active_tab = (! empty($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'general');
+$settings = get_option('wpbs_settings', array());
 
 ?>
 
-<div class="wrap wpbs-wrap wpbs-wrap-upgrade-to-premium">
+<div class="wrap wpbs-wrap wpbs-wrap-settings">
 
-    <h2>Upgrade to Premium</h2>
+    <?php wpbs_get_wp_admin_header(); ?>
 
-    <h3>Finally, a booking plugin that has it all!</h3>
-
-    <ul>
-        <li>
-            <strong><span class="dashicons dashicons-yes"></span> Create unlimited calendars and forms</strong>
-            <p>Create unlimited calendars and forms as opposed to just one of each in the free version.</p>
-        </li>
-        <li>
-            <strong><span class="dashicons dashicons-yes"></span> Create your own legend</strong>
-            <p>Set custom statuses for your dates, add split days, or just change the colors for the available and booked legends.</p>
-        </li>
-        <li>
-            <strong><span class="dashicons dashicons-yes"></span> Accept Online and Offline payments</strong>
-            <p>Allow your customers to pay online with their credit cards or with PayPal, or offline in cash on arrival.</p>
-        </li>
-        <li>
-            <strong><span class="dashicons dashicons-yes"></span> iCalendar Sync, Import and Export</strong>
-            <p>Sync the availability of your calendar to any website that can import iCal feeds (including Airbnb, Booking.com or Google Calendar). </p>
-        </li>
-        <li>
-            <strong><span class="dashicons dashicons-yes"></span> Split days selection</strong>
-            <p>Choose between using full days or half(changeover) days when a user makes a booking.</p>
-        </li>
-        <li>
-            <strong><span class="dashicons dashicons-yes"></span> Set limits on bookings</strong>
-            <p>Select the minimum or the maximum number of days the customer can book, or even the days when a reservation can start or end.</p>
-        </li>
-        <li>
-            <strong><span class="dashicons dashicons-yes"></span> Automatically block booked days</strong>
-            <p>You will have the option to automatically approve all bookings, so no double bookings can be made. </p>
-        </li>
-        <li>
-            <strong><span class="dashicons dashicons-yes"></span> Send booking notifications to the user</strong>
-            <p>Automate and customize the emails that are being sent when a booking is made, or send emails when bookings are accepted or modified.</p>
-        </li>
-        <li>
-            <strong><span class="dashicons dashicons-yes"></span> User Management</strong>
-            <p>Control who has access to your calendars by assigning WordPress users. You can assign general access per user type or assign a specific user to a specific calendar.</p>
-        </li>
-        <li>
-            <strong><span class="dashicons dashicons-yes"></span> Display an overview calendar</strong>
-            <p>You can create multiple calendars and combine them into one clear overview.</p>
-        </li>
-        <li>
-            <strong><span class="dashicons dashicons-yes"></span> Fully Translatable</strong>
-            <p>Some texts can automatically be translated in other languages, and you can fully translate forms and calendars in any language you want/need manually. </p>
-        </li>
-        <li>
-            <strong><span class="dashicons dashicons-yes"></span> ...and a lot more</strong>
-            <p>Like displaying multiple months, changing the starting day of the week, set a custom start month or year, bulk dates editor, tooltips, hide past bookings, show week numbers, and the list goes on.</p>
-        </li>
-        
-    </ul>
-    
-
-    
-
-    <div class="cta">
-        <h3>Ready to take full advantage of the premium version?</h3>
-       
-
-        <a class="wpbs-button" href="https://www.wpbookingsystem.com/pricing/" target="_blank">Get Started</a>
-
-        <p class="prices">Prices starting from $79.</p>
-
-
+    <div class="wpbs-plugin-sticky-header">
+        <span class="wpbs-page-heading"><?php echo __('Upgrade to Premium', 'wp-booking-system'); ?></span>
+        <div class="wpbs-header-buttons"></div>
     </div>
 
-    
-    <div class="cta-2">
-       <h4>Use this coupon code for a 20% discount. </h4>
-        <p class="discount">
-            <strong>FREE-VERSION-UPGRADE</strong>
-        </p>
-
+    <div class="wpbs-notifications">
+        <h1 class="wp-heading-inline"></h1>
     </div>
 
-    <h3 class="wpbs-clear">Need more convincing? See how the features work for you. <a href="https://www.wpbookingsystem.com/" target="_blank">Access the demos now</a>.</h3>
+    <div class="wpbs-plugin-wrapper wpbs-wrap-upgrade-to-premium">
 
+        <h3>Take your booking system to the next level</h3>
+
+        <div class="wpbs-premium-main">
+            <ul>
+                <li>
+                    <strong><span class="dashicons dashicons-yes" aria-hidden="true"></span> Create unlimited calendars and forms</strong>
+                    <p>Manage multiple properties, rentals or resources with as many booking calendars and forms as you need.</p>
+                </li>
+
+                <li>
+                    <strong><span class="dashicons dashicons-yes" aria-hidden="true"></span> Add pricing to your bookings</strong>
+                    <p>Set prices by day or season, charge based on the number of guests, add extra services, taxes, deposits and more.</p>
+                </li>
+
+                <li>
+                    <strong><span class="dashicons dashicons-yes" aria-hidden="true"></span> Accept online and offline payments</strong>
+                    <p>Let customers pay online using supported payment gateways, or offer offline payment methods such as bank transfer or payment on arrival.</p>
+                </li>
+
+                <li>
+                    <strong><span class="dashicons dashicons-yes" aria-hidden="true"></span> Sync availability with other platforms</strong>
+                    <p>Use iCalendar to keep availability synchronized with platforms such as Airbnb, Booking.com, Google Calendar and other compatible services.</p>
+                </li>
+
+                <li>
+                    <strong><span class="dashicons dashicons-yes" aria-hidden="true"></span> Create advanced booking restrictions</strong>
+                    <p>Control minimum and maximum stays, fixed booking lengths, arrival and departure days, advance booking periods, turnaround times and seasonal rules.</p>
+                </li>
+
+                <li>
+                    <strong><span class="dashicons dashicons-yes" aria-hidden="true"></span> Manage all your bookings in one place</strong>
+                    <p>Use the Booking Manager to view and manage bookings from all your calendars from one convenient dashboard.</p>
+                </li>
+
+                <li>
+                    <strong><span class="dashicons dashicons-yes" aria-hidden="true"></span> Automate customer notifications</strong>
+                    <p>Create and customize emails for new bookings, confirmations, booking updates, reminders and other important events.</p>
+                </li>
+
+                <li>
+                    <strong><span class="dashicons dashicons-yes" aria-hidden="true"></span> See reports and booking statistics</strong>
+                    <p>Get a clearer picture of your business with reports covering bookings, revenue and other useful performance data.</p>
+                </li>
+
+                <li>
+                    <strong><span class="dashicons dashicons-yes" aria-hidden="true"></span> Control calendar access with User Management</strong>
+                    <p>Choose which WordPress users can access your calendars and assign specific calendars to individual users when needed.</p>
+                </li>
+
+                <li>
+                    <strong><span class="dashicons dashicons-yes" aria-hidden="true"></span> Display an overview calendar</strong>
+                    <p>Combine availability from multiple calendars into one clear overview, making it easier to show and manage multiple rentals or resources.</p>
+                </li>
+
+                <li>
+                    <strong><span class="dashicons dashicons-yes" aria-hidden="true"></span> Help customers find available rentals</strong>
+                    <p>Let visitors search across multiple calendars and quickly find properties or resources available for their selected dates.</p>
+                </li>
+
+                <li>
+                    <strong><span class="dashicons dashicons-yes" aria-hidden="true"></span> Unlock even more tools for your booking business</strong>
+                    <p>Add discounts and coupons, invoices, contracts, SMS notifications, multiple currencies, WooCommerce Checkout, inventory management and more.</p>
+                </li>
+            </ul>
+
+            <h3 class="wpbs-clear">
+                Want to see Premium in action?
+                <a href="https://www.wpbookingsystem.com/demo/" target="_blank" rel="noopener">Explore the live demos</a>.
+            </h3>
+        </div>
+
+        <aside class="wpbs-premium-sidebar" aria-label="Premium upgrade options">
+            <div class="cta">
+                <h3>Ready to get more from WP Booking System?</h3>
+                <p class="prices">Unlock advanced booking tools, pricing, integrations and more. Premium plans start at $79 per year.</p>
+                <a class="wpbs-button" href="https://www.wpbookingsystem.com/pricing/?utm_source=wp-booking-system-free" target="_blank" rel="noopener">Explore Premium</a>
+            </div>
+
+            <div class="cta-2">
+                <h4>Save 20% on your upgrade</h4>
+                <p class="discount">
+                    <button type="button" class="wpbs-select-on-click" aria-label="Copy discount code FREE-VERSION-UPGRADE">FREE-VERSION-UPGRADE</button>
+                </p>
+                <p class="wpbs-premium-copy-hint">Click the code to copy it.</p>
+            </div>
+        </aside>
+
+    </div>
 </div>

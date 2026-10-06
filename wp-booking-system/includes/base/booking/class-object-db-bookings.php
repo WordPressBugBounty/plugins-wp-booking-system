@@ -46,6 +46,8 @@ class WPBS_Object_DB_Bookings extends WPBS_Object_DB
             'is_read' => '%d',
             'date_created' => '%s',
             'date_modified' => '%s',
+            'invoice_hash' => '%s',
+            'cancellation_hash' => '%s',
         );
     }
 
@@ -66,11 +68,13 @@ class WPBS_Object_DB_Bookings extends WPBS_Object_DB
             'orderby' => 'id',
             'order' => 'DESC',
             'include' => array(),
-            'search' => '',
             'calendar_id' => '',
             'form_id' => '',
             'status' => array(),
-            'is_read' => ''
+            'is_read' => '',
+            'invoice_hash' => '',
+            'cancellation_hash' => '',
+            'custom_query' => ''
         );
 
         $args = wp_parse_args($args, $defaults);
@@ -111,6 +115,21 @@ class WPBS_Object_DB_Bookings extends WPBS_Object_DB
 
         }
 
+        // Invoice Hash where clause
+        if (!empty($args['invoice_hash'])) {
+
+            $invoice_hash = esc_sql($args['invoice_hash']);
+            $where .= " AND invoice_hash = '{$invoice_hash}'";
+
+        }
+        // Invoice Hash where clause
+        if (!empty($args['cancellation_hash'])) {
+
+            $cancellation_hash = esc_sql($args['cancellation_hash']);
+            $where .= " AND cancellation_hash = '{$cancellation_hash}'";
+
+        }
+
         // Number args
         if ($args['number'] < 1) {
             $args['number'] = 999999;
@@ -120,7 +139,7 @@ class WPBS_Object_DB_Bookings extends WPBS_Object_DB
         if (!empty($args['status'])) {
             $status_query = '';
             foreach ($args['status'] as $status) {
-                $status = sanitize_text_field($status);
+                $status = esc_sql($status);
                 $status_query .= "status = '{$status}' OR ";
             }
             $status_query = trim($status_query, ' OR ');
@@ -137,18 +156,13 @@ class WPBS_Object_DB_Bookings extends WPBS_Object_DB
 
         }
 
-        // Include search
-        if (!empty($args['search'])) {
-
-            $search = sanitize_text_field($args['search']);
-            $where .= " AND name LIKE '%%{$search}%%'";
-
+        // Include custom query
+        if (!empty($args['custom_query'])) {
+            $where .= $args['custom_query'];
         }
 
-        
-
         // Orderby
-        $orderby = sanitize_text_field($args['orderby']);
+        $orderby = esc_sql($args['orderby']);
 
         // Order
         $order = ('DESC' === strtoupper($args['order']) ? 'DESC' : 'ASC');
@@ -184,7 +198,9 @@ class WPBS_Object_DB_Bookings extends WPBS_Object_DB
             is_read tinyint(1) NOT NULL,
 			date_created datetime NOT NULL,
 			date_modified datetime NOT NULL,
-			PRIMARY KEY  id (id)
+            invoice_hash text NOT NULL,
+            cancellation_hash text NOT NULL,
+			PRIMARY KEY (id)
 		) {$charset_collate};";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';

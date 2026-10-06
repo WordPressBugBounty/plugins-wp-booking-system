@@ -21,10 +21,6 @@ function wpbs_refresh_calendar_editor()
         wp_die();
     }
 
-    if(!current_user_can(apply_filters( 'wpbs_submenu_page_capability_calendars', 'manage_options' ))){
-        wp_die();
-    }
-
     $_POST = stripslashes_deep($_POST);
 
     /**
@@ -50,7 +46,9 @@ function wpbs_refresh_calendar_editor()
 
     }
 
-    $calendar_outputter = new WPBS_Calendar_Outputter($calendar, $calendar_args);
+    $calendar_args['is_admin'] = true;
+
+    $calendar_outputter = new WPBS_Calendar_Outputter($calendar, $calendar_args, $calendar_data);
     $calendar_editor_outputter = new WPBS_Calendar_Editor_Outputter($calendar, $calendar_args, $calendar_data);
 
     $output = array(
@@ -60,7 +58,6 @@ function wpbs_refresh_calendar_editor()
 
     echo json_encode($output);
     wp_die();
-
 }
 add_action('wp_ajax_wpbs_refresh_calendar_editor', 'wpbs_refresh_calendar_editor');
 
@@ -71,26 +68,33 @@ add_action('wp_ajax_wpbs_refresh_calendar_editor', 'wpbs_refresh_calendar_editor
 function wpbs_save_calendar_data()
 {
 
-    $_POST = stripslashes_deep($_POST);
+    // Nonce
+    check_ajax_referer('wpbs_save_calendar_data', 'wpbs_token');
 
-    // Verify for nonce
-    if (empty($_POST['wpbs_token']) || !wp_verify_nonce($_POST['wpbs_token'], 'wpbs_save_calendar')) {
-        echo add_query_arg( array( 'page' => 'wpbs-calendars', 'wpbs_message' => 'calendar_update_fail' ), admin_url( 'admin.php' ) );
-		wp_die();
-    }
+    $_POST = stripslashes_deep($_POST);
 
     /**
      * Parse the form data as name value pair
      *
      */
-    if (empty($_POST['form_data'])) {
 
+    if (!isset($_POST['is_booking_modal']) && empty($_POST['form_data'])) {
         echo add_query_arg(array('page' => 'wpbs-calendars', 'wpbs_message' => 'calendar_update_fail'), admin_url('admin.php'));
         wp_die();
-
     }
 
     parse_str($_POST['form_data'], $_POST['form_data']);
+
+    if (isset($_POST['form_data']['calendar_id'])) {
+        $calendar_id = absint($_POST['form_data']['calendar_id']);
+    } else {
+        if (isset($_POST['booking_id'])) {
+            $booking = wpbs_get_booking($_POST['booking_id']);
+            if ($booking) {
+                $calendar_id = $booking->get('calendar_id');
+            }
+        }
+    }
 
     /**
      * The calendar data had to be JSON encoded due to the php input limit which limited
@@ -101,20 +105,23 @@ function wpbs_save_calendar_data()
      */
     $_POST['calendar_data'] = (!empty($_POST['calendar_data']) ? json_decode($_POST['calendar_data'], true) : array());
 
-    if (empty($_POST['form_data']['calendar_id'])) {
+    if (!isset($calendar_id) || empty($calendar_id)) {
 
         echo add_query_arg(array('page' => 'wpbs-calendars', 'wpbs_message' => 'calendar_update_fail'), admin_url('admin.php'));
         wp_die();
-
     }
 
     /**
      * Prepare variables
      *
      */
-    $calendar_id = absint($_POST['form_data']['calendar_id']);
-    $calendar_name = sanitize_text_field($_POST['form_data']['calendar_name']);
+
+    $calendar_name = isset($_POST['form_data']['calendar_name']) ? sanitize_text_field($_POST['form_data']['calendar_name']) : false;
     $calendar_data = (!empty($_POST['calendar_data']) ? _wpbs_array_wp_kses_post($_POST['calendar_data']) : array());
+
+    if (!wpbs_current_user_can_access_calendar($calendar_id)) {
+        wp_die();
+    }
 
     /**
      * Get default legend item
@@ -128,7 +135,6 @@ function wpbs_save_calendar_data()
 
         echo add_query_arg(array('page' => 'wpbs-calendars', 'subpage' => 'edit-calendar', 'calendar_id' => $calendar_id, 'wpbs_message' => 'calendar_update_fail'), admin_url('admin.php'));
         wp_die();
-
     }
 
     /**
@@ -158,9 +164,11 @@ function wpbs_save_calendar_data()
     // Update Calendar Meta
     $settings = get_option('wpbs_settings', array());
 
-    if (isset($settings['active_languages']) && count($settings['active_languages']) > 0) {
-        foreach ($settings['active_languages'] as $language) {
-            wpbs_update_calendar_meta($calendar_id, 'calendar_name_translation_' . $language, sanitize_text_field($_POST['form_data']['calendar_name_translation_' . $language]));
+    if (!isset($_POST['is_booking_modal'])) {
+        if (isset($settings['active_languages']) && count($settings['active_languages']) > 0) {
+            foreach ($settings['active_languages'] as $language) {
+                wpbs_update_calendar_meta($calendar_id, 'calendar_name_translation_' . $language, sanitize_text_field($_POST['form_data']['calendar_name_translation_' . $language]));
+            }
         }
     }
 
@@ -192,12 +200,11 @@ function wpbs_save_calendar_data()
                 $event_data['date_day'] = $day;
 
                 // Add event to events array
-                $events_data[] = $event_data;
-
+                if (checkdate($month, $day, $year)) {
+                    $events_data[] = $event_data;
+                }
             }
-
         }
-
     }
 
     // Save events data
@@ -212,7 +219,6 @@ function wpbs_save_calendar_data()
                 $event = $_event;
                 break;
             }
-
         }
 
         if (!empty($event_data['price'])) {
@@ -222,7 +228,7 @@ function wpbs_save_calendar_data()
         // Handle insert
         if (is_null($event)) {
 
-            if ($default_legend_item->get('id') == $event_data['legend_item_id'] && empty($event_data['description']) && empty($event_data['tooltip']) && empty($event_data['price'])) {
+            if (isset($event_data['legend_item_id']) && $default_legend_item->get('id') == $event_data['legend_item_id'] && empty($event_data['description']) && empty($event_data['tooltip']) && empty($event_data['price'])) {
                 continue;
             }
 
@@ -238,18 +244,75 @@ function wpbs_save_calendar_data()
             unset($event_data['date_day']);
 
             wpbs_update_event($event->get('id'), $event_data);
-
         }
-
     }
 
+    /**
+     * Handle Link Calendar
+     *
+     */
+
+    // Remove previous saved values
+    if (!isset($_POST['is_booking_modal'])) {
+        wpbs_delete_calendar_meta($calendar->get('id'), 'calendar_link_type');
+        wpbs_delete_calendar_meta($calendar->get('id'), 'calendar_link_internal');
+        wpbs_delete_calendar_meta($calendar->get('id'), 'calendar_link_external');
+
+
+        // Add the new values
+        if (!empty($_POST['form_data']['calendar_link_type'])) {
+            wpbs_update_calendar_meta($calendar->get('id'), 'calendar_link_type', sanitize_text_field($_POST['form_data']['calendar_link_type']));
+        }
+
+        if (!empty($_POST['form_data']['calendar_link_internal'])) {
+            wpbs_update_calendar_meta($calendar->get('id'), 'calendar_link_internal', absint($_POST['form_data']['calendar_link_internal']));
+        }
+
+        if (!empty($_POST['form_data']['calendar_link_external']) && false !== filter_var($_POST['form_data']['calendar_link_external'], FILTER_VALIDATE_URL)) {
+            wpbs_update_calendar_meta($calendar->get('id'), 'calendar_link_external', $_POST['form_data']['calendar_link_external']);
+        }
+
+        // Add values for translations
+        if (isset($settings['active_languages']) && count($settings['active_languages']) > 0) {
+            foreach ($settings['active_languages'] as $language) {
+                wpbs_delete_calendar_meta($calendar->get('id'), 'calendar_link_internal_translation_' . $language);
+
+                if (!empty($_POST['form_data']['calendar_link_internal_translation_' . $language])) {
+                    wpbs_update_calendar_meta($calendar_id, 'calendar_link_internal_translation_' . $language, sanitize_text_field($_POST['form_data']['calendar_link_internal_translation_' . $language]));
+                }
+
+                wpbs_delete_calendar_meta($calendar->get('id'), 'calendar_link_external_translation_' . $language);
+
+                if (!empty($_POST['form_data']['calendar_link_external_translation_' . $language]) && false !== filter_var($_POST['form_data']['calendar_link_external_translation_' . $language], FILTER_VALIDATE_URL)) {
+                    wpbs_update_calendar_meta($calendar_id, 'calendar_link_external_translation_' . $language, sanitize_text_field($_POST['form_data']['calendar_link_external_translation_' . $language]));
+                }
+            }
+        }
+    }
+
+    /**
+     * Action hook after the calendar was update
+     *
+     * @param array $_POST
+     *
+     */
+    do_action('wpbs_save_calendar_data_end', $_POST);
 
     /**
      * Success redirect
      *
      */
-    echo add_query_arg(array('page' => 'wpbs-calendars', 'subpage' => 'edit-calendar', 'calendar_id' => $calendar_id, 'year' => (int) $_POST['current_year'], 'month' => (int) $_POST['current_month'], 'wpbs_message' => 'calendar_update_success'), admin_url('admin.php'));
-    wp_die();
+    $redirect_args = array('page' => 'wpbs-calendars', 'subpage' => 'edit-calendar', 'calendar_id' => $calendar_id, 'wpbs_message' => 'calendar_update_success');
 
+    if (isset($_POST['current_year'])) {
+        $redirect_args['year'] = (int) $_POST['current_year'];
+    }
+
+    if (isset($_POST['current_month'])) {
+        $redirect_args['month'] = (int) $_POST['current_month'];
+    }
+
+    echo add_query_arg($redirect_args, admin_url('admin.php'));
+    wp_die();
 }
 add_action('wp_ajax_wpbs_save_calendar_data', 'wpbs_save_calendar_data');

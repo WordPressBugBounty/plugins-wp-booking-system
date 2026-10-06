@@ -3,14 +3,14 @@
  * Plugin Name: WP Booking System
  * Plugin URI: https://www.wpbookingsystem.com/
  * Description: A set-and-forget booking calendar for your rental business.
- * Version: 2.0.19.14
+ * Version: 2.1
  * Author: Veribo, Roland Murg
  * Author URI: https://www.wpbookingsystem.com/
  * Text Domain: wp-booking-system
  * License: GPL2
  *
  * == Copyright ==
- * Copyright 2019 WP Booking System (www.wpbookingsystem.com)
+ * Copyright 2026 WP Booking System (www.wpbookingsystem.com)
  *
  */
 
@@ -61,7 +61,7 @@ class WP_Booking_System
     {
 
         // Defining constants
-        define('WPBS_VERSION', '2.0.19.14');
+        define('WPBS_VERSION', '2.1');
         define('WPBS_FILE', __FILE__);
         define('WPBS_BASENAME', plugin_basename(__FILE__));
         define('WPBS_PLUGIN_DIR', plugin_dir_path(__FILE__));
@@ -92,16 +92,16 @@ class WP_Booking_System
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
 
         // Front-end scripts
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_front_end_scripts'));
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_front_end_scripts'), apply_filters('wpbs_enqueue_front_end_scripts_order', 10));
 
         // Remove plugin query args from the URL
         add_filter('removable_query_args', array($this, 'removable_query_args'));
 
-        // Add body class for WP versions greater than 5.3
-        add_filter( 'admin_body_class', array($this, 'admin_body_class') );
-
         // Add a 5 star review call to action to admin footer text
         add_filter('admin_footer_text', array($this, 'admin_footer_text'));
+
+        // Add body class for WP versions greater than 5.3
+        add_filter('admin_body_class', array($this, 'admin_body_class'));
 
         register_activation_hook(__FILE__, array($this, 'set_cron_jobs'));
         register_deactivation_hook(__FILE__, array($this, 'unset_cron_jobs'));
@@ -111,7 +111,6 @@ class WP_Booking_System
          *
          */
         do_action('wpbs_initialized');
-
     }
 
     /**
@@ -128,7 +127,6 @@ class WP_Booking_System
         }
 
         return self::$instance;
-
     }
 
     /**
@@ -138,8 +136,7 @@ class WP_Booking_System
     public function add_main_menu_page()
     {
 
-        add_menu_page('WP Booking System', 'WP Booking<br /> System', apply_filters('wpbs_menu_page_capability', 'manage_options'), 'wp-booking-system', '', 'dashicons-calendar-alt');
-
+        add_menu_page(__('WP Booking System', 'wp-booking-system'), apply_filters('wpbs_admin_menu_title', 'WP Booking System'), apply_filters('wpbs_menu_page_capability', 'manage_options'), 'wp-booking-system', '', 'dashicons-calendar-alt');
     }
 
     /**
@@ -150,7 +147,6 @@ class WP_Booking_System
     {
 
         remove_submenu_page('wp-booking-system', 'wp-booking-system');
-
     }
 
     /**
@@ -176,9 +172,14 @@ class WP_Booking_System
 
             // Add first activation time
             if (get_option('wpbs_first_activation', '') == '') {
+                
                 update_option('wpbs_first_activation', time());
-            }
 
+                do_action('wpbs_first_activation', $db_version);
+
+                // Enable email logging by default.
+                update_option('wpbs_settings', ['email_logs' => 'on']);
+            }
         }
 
         if ($do_update) {
@@ -188,9 +189,7 @@ class WP_Booking_System
 
             // Trigger set cron jobs
             $this->set_cron_jobs();
-
         }
-
     }
 
     /**
@@ -205,9 +204,7 @@ class WP_Booking_System
         foreach ($this->db as $db_class) {
 
             $db_class->create_table();
-
         }
-
     }
 
     /**
@@ -217,20 +214,19 @@ class WP_Booking_System
     public function load_text_domain()
     {
 
-        $locale = apply_filters( 'plugin_locale', get_locale(), WPBS_TRANSLATION_TEXTDOMAIN );
+        $locale = apply_filters('plugin_locale', get_locale(), WPBS_TRANSLATION_TEXTDOMAIN);
 
         // Search for Translation in /wp-content/languages/plugin/
-        if (file_exists(trailingslashit( WP_LANG_DIR ) . 'plugins' . WPBS_TRANSLATION_TEXTDOMAIN . '-' . $locale . '.mo')) {
-            load_plugin_textdomain(WPBS_TRANSLATION_TEXTDOMAIN, false, trailingslashit( WP_LANG_DIR ));
+        if (file_exists(trailingslashit(WP_LANG_DIR) . 'plugins' . WPBS_TRANSLATION_TEXTDOMAIN . '-' . $locale . '.mo')) {
+            load_plugin_textdomain(WPBS_TRANSLATION_TEXTDOMAIN, false, trailingslashit(WP_LANG_DIR));
         }
         // Search for Translation in /wp-content/languages/
-        elseif (file_exists(trailingslashit( WP_LANG_DIR ) . WPBS_TRANSLATION_TEXTDOMAIN . '-' . $locale . '.mo')) {
-            load_textdomain(WPBS_TRANSLATION_TEXTDOMAIN, trailingslashit( WP_LANG_DIR ) . WPBS_TRANSLATION_TEXTDOMAIN . '-' . $locale . '.mo');
-        // Search for Translation in /wp-content/plugins/wp-booking-system-premium/languages/
+        elseif (file_exists(trailingslashit(WP_LANG_DIR) . WPBS_TRANSLATION_TEXTDOMAIN . '-' . $locale . '.mo')) {
+            load_textdomain(WPBS_TRANSLATION_TEXTDOMAIN, trailingslashit(WP_LANG_DIR) . WPBS_TRANSLATION_TEXTDOMAIN . '-' . $locale . '.mo');
+            // Search for Translation in /wp-content/plugins/wp-booking-system-premium/languages/
         } else {
             load_plugin_textdomain(WPBS_TRANSLATION_TEXTDOMAIN, false, plugin_basename(dirname(__FILE__)) . '/languages');
         }
-
     }
 
     /**
@@ -241,7 +237,6 @@ class WP_Booking_System
     {
 
         do_action('wpbs_set_cron_jobs');
-
     }
 
     /**
@@ -252,7 +247,6 @@ class WP_Booking_System
     {
 
         do_action('wpbs_unset_cron_jobs');
-
     }
 
     /**
@@ -268,12 +262,14 @@ class WP_Booking_System
          * Include abstract classes
          *
          */
-        include WPBS_PLUGIN_DIR . 'includes/abstracts/abstract-class-db.php';
-        include WPBS_PLUGIN_DIR . 'includes/abstracts/abstract-class-list-table.php';
-        include WPBS_PLUGIN_DIR . 'includes/abstracts/abstract-class-object-db.php';
-        include WPBS_PLUGIN_DIR . 'includes/abstracts/abstract-class-object-meta-db.php';
-        include WPBS_PLUGIN_DIR . 'includes/abstracts/abstract-class-object.php';
-        include WPBS_PLUGIN_DIR . 'includes/abstracts/abstract-class-submenu-page.php';
+
+        require_once WPBS_PLUGIN_DIR . 'includes/abstracts/abstract-class-db.php';
+        require_once WPBS_PLUGIN_DIR . 'includes/abstracts/abstract-class-list-table.php';
+        require_once WPBS_PLUGIN_DIR . 'includes/abstracts/abstract-class-object-db.php';
+        require_once WPBS_PLUGIN_DIR . 'includes/abstracts/abstract-class-object-meta-db.php';
+        require_once WPBS_PLUGIN_DIR . 'includes/abstracts/abstract-class-object.php';
+        require_once WPBS_PLUGIN_DIR . 'includes/abstracts/abstract-class-submenu-page.php';
+        require_once WPBS_PLUGIN_DIR . 'includes/abstracts/abstract-class-admin-dashboard-card.php';
 
         /**
          * Include all functions.php files from all plugin folders
@@ -286,7 +282,6 @@ class WP_Booking_System
          *
          */
         do_action('wpbs_include_files');
-
     }
 
     /**
@@ -307,9 +302,7 @@ class WP_Booking_System
             }
 
             $this->_recursively_include_files($folder_path);
-
         }
-
     }
 
     /**
@@ -336,9 +329,7 @@ class WP_Booking_System
         foreach ($db_classes as $db_class_slug => $db_class_name) {
 
             $this->db[$db_class_slug] = new $db_class_name;
-
         }
-
     }
 
     /**
@@ -373,9 +364,7 @@ class WP_Booking_System
             }
 
             $this->submenu_pages[$submenu_page['data']['menu_slug']] = new $submenu_page['class_name']($submenu_page['data']['page_title'], $submenu_page['data']['menu_title'], $submenu_page['data']['capability'], $submenu_page['data']['menu_slug']);
-
         }
-
     }
 
     /**
@@ -384,18 +373,17 @@ class WP_Booking_System
      */
     public function enqueue_admin_scripts($hook)
     {
-        if (strpos($hook, 'wpbs') !== false || strpos($hook, 'widgets') !== false || in_array(get_post_type(), array('post', 'page'))) {
+
+        if (strpos($hook, 'wp-booking-system') !== false || strpos($hook, 'widgets') !== false || in_array(get_post_type(), array('post', 'page'))) {
 
             if (!wp_script_is('chosen')) {
 
                 wp_enqueue_script('wpbs-chosen', WPBS_PLUGIN_DIR_URL . 'assets/libs/chosen/chosen.jquery.min.js', array('jquery'), WPBS_VERSION);
                 wp_enqueue_style('wpbs-chosen', WPBS_PLUGIN_DIR_URL . 'assets/libs/chosen/chosen.css', array(), WPBS_VERSION);
-
             }
-
         }
 
-        if (strpos($hook, 'wpbs') !== false) {
+        if (strpos($hook, 'wp-booking-system') !== false) {
 
             $settings = get_option('wpbs_settings', array());
 
@@ -411,35 +399,73 @@ class WP_Booking_System
 
             // Edit booking scripts
             wp_register_script('wpbs-script-edit-booking', WPBS_PLUGIN_DIR_URL . 'assets/js/script-admin-edit-booking.js', array('jquery', 'jquery-ui-sortable', 'wp-color-picker', 'jquery-ui-datepicker'), WPBS_VERSION);
-            wp_enqueue_script('wpbs-script-edit-booking');
             wp_localize_script('wpbs-script-edit-booking', 'wpbs_localized_data_booking', array(
                 'wpbs_plugins_dir_url' => WPBS_PLUGIN_DIR_URL,
                 'open_bookings_token' => wp_create_nonce('wpbs_open_booking_details'),
                 'email_customer_token' => wp_create_nonce('wpbs_booking_email_customer'),
+                'booking_notes' => wp_create_nonce('wpbs_booking_notes'),
+                'remember_hide_past_option' => wp_create_nonce('wpbs_remember_hide_past_option'),
+                'booking_outputter' => wp_create_nonce('wpbs_booking_outputter'),
+                'security_deposit_action' => wp_create_nonce('wpbs_security_deposit_action'),
+                'remove_scheduled_event' => wp_create_nonce('wpbs_remove_scheduled_event'),
+                'save_calendar_data' => wp_create_nonce('wpbs_save_calendar_data'),
+                'remember_order_option' => wp_create_nonce('wpbs_remember_order_option'),
+                'remember_orderby_option' => wp_create_nonce('wpbs_remember_orderby_option'),
+                'process_refund_token' => wp_create_nonce('wpbs_process_refund'),
+                'bookings_per_page' => apply_filters('wpbs_dashboard_bookings_per_page', 5),
+                'cta_url' => add_query_arg(array('page' => 'wpbs-calendars', 'subpage' => 'upgrade-to-premium'), admin_url('admin.php')),
             ));
+            wp_enqueue_script('wpbs-script-edit-booking');
 
             // Color picker
             wp_enqueue_style('jquery-style', WPBS_PLUGIN_DIR_URL . 'assets/css/jquery-ui.css', array(), WPBS_VERSION);
             wp_enqueue_style('wp-color-picker');
 
-            // Datepicker Custom
-            wp_enqueue_style('wpbs-datepicker', WPBS_PLUGIN_DIR_URL . 'assets/css/datepicker.css', array(), WPBS_VERSION);
-
+            // Edit calendar scripts
+            wp_register_script('wpbs-script-logic-repeater', WPBS_PLUGIN_DIR_URL . 'assets/js/script-admin-logic-repeater.js', array('jquery', 'jquery-ui-sortable', 'wp-color-picker', 'jquery-ui-datepicker'), WPBS_VERSION);
+            wp_enqueue_script('wpbs-script-logic-repeater');
         }
 
         if (!empty($_GET['page']) && $_GET['page'] == 'wpbs-upgrader') {
 
             wp_register_script('wpbs-script-upgrader', WPBS_PLUGIN_DIR_URL . 'assets/js/script-admin-upgrader.js', array('jquery'), WPBS_VERSION);
             wp_enqueue_script('wpbs-script-upgrader');
-
         }
 
         if (!empty($_GET['page']) && $_GET['page'] == 'wpbs-settings') {
 
-            wp_register_script('wpbs-script-uninstaller', WPBS_PLUGIN_DIR_URL . 'assets/js/script-admin-uninstaller.js', array('jquery'), WPBS_VERSION);
-            wp_enqueue_script('wpbs-script-uninstaller');
-
+            wp_register_script('wpbs-script-tools', WPBS_PLUGIN_DIR_URL . 'assets/js/script-admin-tools.js', array('jquery'), WPBS_VERSION);
+            wp_enqueue_script('wpbs-script-tools');
         }
+
+        /**
+         * Add front-end scripts for Add Booking feature
+         */
+        if (!empty($_GET['page']) && $_GET['page'] == 'wpbs-calendars') {
+
+           
+
+            // moment.js
+            wp_register_script('wpbs-momentjs', WPBS_PLUGIN_DIR_URL . 'assets/js/moment.min.js', array(), WPBS_VERSION, true);
+            wp_enqueue_script('wpbs-momentjs');
+
+            wp_register_script('wpbs-script', WPBS_PLUGIN_DIR_URL . 'assets/js/script-front-end.min.js', array('jquery', 'wpbs-momentjs', 'jquery-ui-datepicker'), WPBS_VERSION, true);
+            wp_localize_script('wpbs-script', 'wpbs_ajax', array(
+                'ajax_url' => admin_url('admin-ajax.php'),
+                'token' => wp_create_nonce('wpbs_form_ajax'),
+                'plugins_dir' => WPBS_PLUGIN_DIR_URL,
+                'time_format' => wpbs_convert_php_to_moment_format(get_option('date_format')),
+
+            ));
+            wp_enqueue_script('wpbs-script');
+
+            wp_register_style('wpbs-style-form', WPBS_PLUGIN_DIR_URL . 'assets/css/style-front-end-form.min.css', array(), WPBS_VERSION);
+            wp_enqueue_style('wpbs-style-form');
+
+            do_action('wpbs_enqueue_front_end_scripts');
+        }
+
+        wp_enqueue_script('postbox');
 
         // Plugin styles
         wp_register_style('wpbs-admin-style', WPBS_PLUGIN_DIR_URL . 'assets/css/style-admin.css', array(), WPBS_VERSION);
@@ -447,22 +473,29 @@ class WP_Booking_System
 
         // Plugin script
         wp_register_script('wpbs-admin-script', WPBS_PLUGIN_DIR_URL . 'assets/js/script-admin.js', array('jquery', 'jquery-ui-sortable', 'wp-color-picker', 'jquery-ui-datepicker'), WPBS_VERSION);
+        wp_localize_script('wpbs-admin-script', 'wpbs_admin', array(
+            'wpbs_enhanced_admin_ui' => wpbs_enhanced_admin_ui(),
+        ));
+        wp_localize_script('wpbs-admin-script', 'wpbs_translations', wpbs_get_dashboard_translations());
+
         wp_enqueue_script('wpbs-admin-script');
 
         // Plugin styles from the front-end. Needed for the actual calendar
-        wp_register_style('wpbs-front-end-style', WPBS_PLUGIN_DIR_URL . 'assets/css/style-front-end.css', array(), WPBS_VERSION);
+        wp_register_style('wpbs-front-end-style', WPBS_PLUGIN_DIR_URL . 'assets/css/style-front-end.min.css', array(), WPBS_VERSION);
         wp_enqueue_style('wpbs-front-end-style');
 
         // Icon Font
         wp_register_style('wpbs-icons-font', WPBS_PLUGIN_DIR_URL . 'assets/css/icons-font.css', array(), WPBS_VERSION);
         wp_enqueue_style('wpbs-icons-font');
 
+        // Upload logo button
+        wp_enqueue_media();
+
         /**
          * Hook to enqueue scripts immediately after the plugin's scripts
          *
          */
         do_action('wpbs_enqueue_admin_scripts');
-
     }
 
     /**
@@ -474,9 +507,31 @@ class WP_Booking_System
 
         $settings = get_option('wpbs_settings', array());
 
+
+        /**
+         * Check if we load scripts & styles on all pages.
+         *
+         */
+        if (apply_filters('wpbs_load_scripts_and_styles', true) == false) {
+            return false;
+        }
+
+        /**
+         * Check if we load scripts & styles on all pages.
+         *
+         */
+        if (!wpbs_check_if_scripts_and_styles_are_enqueued()) {
+            return false;
+        }
+
         // Plugin styles
         wp_register_style('wpbs-style', WPBS_PLUGIN_DIR_URL . 'assets/css/style-front-end.min.css', array(), WPBS_VERSION);
         wp_enqueue_style('wpbs-style');
+
+        if (is_rtl()) {
+            wp_register_style('wpbs-style-rtl', WPBS_PLUGIN_DIR_URL . 'assets/css/style-front-end-rtl.min.css', array(), WPBS_VERSION);
+            wp_enqueue_style('wpbs-style-rtl');
+        }
 
         // Plugin styles
         if (!isset($settings['form_styling']) || $settings['form_styling'] == 'default') {
@@ -484,24 +539,36 @@ class WP_Booking_System
             wp_enqueue_style('wpbs-style-form');
         }
 
+       
+
+        // moment.js
+        wp_register_script('wpbs-momentjs', WPBS_PLUGIN_DIR_URL . 'assets/js/moment.min.js', array(), WPBS_VERSION, true);
+        wp_enqueue_script('wpbs-momentjs');
+
         // Plugin script
-        wp_register_script('wpbs-script', WPBS_PLUGIN_DIR_URL . 'assets/js/script-front-end.min.js', array('jquery'), WPBS_VERSION, true);
+        wp_register_script('wpbs-script', WPBS_PLUGIN_DIR_URL . 'assets/js/script-front-end.min.js', array('jquery', 'wpbs-momentjs', 'jquery-ui-datepicker'), WPBS_VERSION, true);
         wp_localize_script('wpbs-script', 'wpbs_ajax', array(
-            'token' => wp_create_nonce('wpbs_form_ajax')
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'plugins_dir' => WPBS_PLUGIN_DIR_URL,
+            'token' => wp_create_nonce('wpbs_form_ajax'),
+            'time_format' => wpbs_convert_php_to_moment_format(get_option('date_format')),
+            'permalink' => get_permalink(),
+           
+            'wpbs_datepicker_params' => apply_filters('wpbs_datepicker_params', []),
+            'scroll_animation_offset' => apply_filters('wpbs_form_scroll_animation_offset', 100),
         ));
 
         wp_enqueue_script('wpbs-script');
 
-        // Add ajax_url into the front-end
-        $ajax_url = "
-            var wpbs_ajaxurl = '" . admin_url('admin-ajax.php') . "';
-        ";
-
-        wp_add_inline_script('wpbs-script', $ajax_url, 'before');
-
         // Google reCaptcha V2
-        if (isset($settings['recaptcha_v2_site_key']) && !empty($settings['recaptcha_v2_site_key'])) {
-            wp_register_script('google-recaptcha', 'https://www.google.com/recaptcha/api.js', array(), WPBS_VERSION, false);
+        if (wpbs_get_recaptcha_type() == 'v2' && wpbs_get_recaptcha_keys() !== false) {
+            wp_register_script('google-recaptcha', 'https://www.google.com/recaptcha/api.js?hl=' . wpbs_get_site_language(), array(), null, false);
+            wp_enqueue_script('google-recaptcha');
+        }
+
+        if (wpbs_get_recaptcha_type() == 'v3' && wpbs_get_recaptcha_keys() !== false) {
+            $recaptcha_keys = wpbs_get_recaptcha_keys();
+            wp_register_script('google-recaptcha', 'https://www.google.com/recaptcha/api.js?render=' . $recaptcha_keys['site_key'], array(), null, false);
             wp_enqueue_script('google-recaptcha');
         }
 
@@ -510,7 +577,6 @@ class WP_Booking_System
          *
          */
         do_action('wpbs_enqueue_front_end_scripts');
-
     }
 
     /**
@@ -523,7 +589,6 @@ class WP_Booking_System
         $args[] = 'wpbs_message';
 
         return $args;
-
     }
 
     /**
@@ -532,12 +597,10 @@ class WP_Booking_System
      * @param string $text
      *
      */
-    public function admin_body_class($classes){
-        if ( version_compare( get_bloginfo('version'), '5.3', '>=' ) ) {
-	        $classes .= ' wpbs-greater-5-3';
-        }
-        if ( version_compare( get_bloginfo('version'), '7.0', '>=' ) ) {
-	        $classes .= ' wpbs-greater-7';
+    public function admin_body_class($classes)
+    {
+        if (version_compare(get_bloginfo('version'), '5.3', '>=')) {
+            $classes .= ' wpbs-greater-5-3';
         }
         return $classes;
     }
@@ -551,14 +614,8 @@ class WP_Booking_System
     public function admin_footer_text($text)
     {
 
-        if (isset($_GET['page']) && strpos($_GET['page'], 'wpbs') !== false) {
-            return sprintf(__('If you enjoy using <strong>WP Booking System</strong>, please <a href="%s" target="_blank">leave us a ★★★★★ rating</a>. Big thank you for this!', 'wp-booking-system'), 'https://wordpress.org/support/plugin/wp-booking-system/reviews/?rate=5#new-post');
-        }
-
         return $text;
-
     }
-
 }
 
 /**
@@ -569,7 +626,6 @@ function wp_booking_system()
 {
 
     return WP_Booking_System::instance();
-
 }
 
 // Let's get the party started

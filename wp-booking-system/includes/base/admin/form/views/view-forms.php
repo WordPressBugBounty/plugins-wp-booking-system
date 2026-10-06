@@ -1,34 +1,62 @@
 <?php
 
 // Exit if accessed directly
-if ( ! defined( 'ABSPATH' ) ) exit;
+if (! defined('ABSPATH')) exit;
 
 ?>
 
 <div class="wrap wpbs-wrap wpbs-wrap-forms">
 
-	<!-- Page Heading -->
-	<h1 class="wp-heading-inline"><?php echo __( 'Forms', 'wp-booking-system' ); ?></h1>
-	<a href="<?php echo add_query_arg( array( 'subpage' => 'add-form' ), $this->admin_url ); ?>" class="page-title-action"><?php echo __( 'Add New Form', 'wp-booking-system' ); ?></a>
-	<hr class="wp-header-end" />
+	<?php wpbs_get_wp_admin_header(); ?>
 
-	<!-- Forms List Table -->
-	<form method="get">
+	<!-- Plugin Sticky Header -->
+	<div class="wpbs-plugin-sticky-header">
 
-        <input type="hidden" name="page" value="wpbs-forms" />
-        <input type="hidden" name="paged" value="1">
+		<!-- Page Title -->
+		<span class="wpbs-page-heading"><?php echo __('Forms', 'wp-booking-system'); ?></span>
 
-		<?php
-			$table = new WPBS_WP_List_Table_Forms();
-			$table->views();
-			$table->search_box( __( 'Search Forms', 'wp-booking-system' ), 'wpbs-search-forms' );
-			$table->display();
-		?>
-	</form>
+		<!-- Buttons -->
+		<div class="wpbs-header-buttons">
+			<a href="<?php echo add_query_arg(array('subpage' => 'add-form'), $this->admin_url); ?>" class="wpbs-primary-button"><?php echo __('Add New Form', 'wp-booking-system'); ?></a>
+		</div>
 
-	<a href="<?php echo add_query_arg( array( 'page' => 'wpbs-calendars', 'subpage' => 'upgrade-to-premium' ), $this->admin_url ); ?>" class="wpbs-wrap-upgrade-cta">
-		<span class="wpbs-wrap-upgrade-cta-button">I'm interested</span>
-		<span class="wpbs-wrap-upgrade-cta-heading">Missing anything? Discover more powerful features in the premium version now!</span>
-	</a>
+	</div>
+
+	<!-- WP Notifications -->
+	<div class="wpbs-notifications">
+		<h1 class="wp-heading-inline"></h1>
+	</div>
+
+	<!-- Body -->
+	<div class="wpbs-plugin-wrapper">
+		<div class="wpbs-box wpbs-transparent">
+
+			<!-- Forms List Table -->
+			<form method="get">
+
+				<input type="hidden" name="page" value="wpbs-forms" />
+				<input type="hidden" name="paged" value="1">
+
+				<div class="wpbs-box-header wpbs-box-toolbar">
+					<?php
+					$table = new WPBS_WP_List_Table_Forms();
+					$table->views();
+					$table->search_box(__('Search Forms', 'wp-booking-system'), 'wpbs-search-forms');
+					?>
+				</div>
+
+				<div class="wpbs-box-content wpbs-no-padding">
+					<div class="wpbs-box-table-wrapper">
+						<?php $table->display(); ?>
+					</div>
+				</div>
+
+			</form>
+
+		</div>
+
+		<?php include WPBS_PLUGIN_DIR . 'includes/base/admin/upgrade-to-premium-cta.php'; ?>
+
+	</div>
 
 </div>

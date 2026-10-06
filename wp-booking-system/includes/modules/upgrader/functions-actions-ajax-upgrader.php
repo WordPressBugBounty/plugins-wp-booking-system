@@ -69,7 +69,7 @@ function wpbs_action_ajax_migrate_calendars()
                 'date_created' => date('Y-m-d H:i:s', $calendar['createdDate']),
                 'date_modified' => date('Y-m-d H:i:s', $calendar['modifiedDate']),
                 'status' => 'active',
-                'ical_hash' => (!empty($calendar['calendarHash']) ? $calendar['calendarHash'] : wpbs_generate_ical_hash()),
+                'ical_hash' => (!empty($calendar['calendarHash']) ? $calendar['calendarHash'] : wpbs_generate_hash()),
             );
 
             $calendar_id = wpbs_insert_calendar($calendar_data);
@@ -102,11 +102,11 @@ function wpbs_action_ajax_migrate_calendars()
                     $color[] = $old_legend_item['splitColor'];
                 }
 
-                if ((!empty($old_legend_item['auto-pending']) && $old_legend_item['auto-pending'] == 'yes') || $old_legend_item['name']['default'] == 'Booked') {
+                if((!empty($old_legend_item['auto-pending']) && $old_legend_item['auto-pending'] == 'yes') || $old_legend_item['name']['default'] == 'Booked'){
                     $auto_pending = 'booked';
-                } elseif ($old_legend_item['name']['default'] == 'Changeover 1') {
+                } elseif($old_legend_item['name']['default'] == 'Changeover 1'){
                     $auto_pending = 'changeover_start';
-                } elseif ($old_legend_item['name']['default'] == 'Changeover 2') {
+                } elseif($old_legend_item['name']['default'] == 'Changeover 2'){
                     $auto_pending = 'changeover_end';
                 } else {
                     $auto_pending = '';
@@ -120,86 +120,10 @@ function wpbs_action_ajax_migrate_calendars()
                     'is_visible' => (empty($old_legend_item['hide']) ? 1 : 0),
                     'calendar_id' => $calendar_id,
                     'is_bookable' => ((!empty($old_legend_item['bookable']) && $old_legend_item['bookable'] == 'yes') ? 1 : 0),
-                    'auto_pending' => $auto_pending,
+                    'auto_pending' => $auto_pending
                 );
 
                 $legend_item_id = wpbs_insert_legend_item($legend_item_data);
-
-                if ($old_legend_item['name']['default'] == 'Available') {
-                    // Add default translations
-                    $translations = array(
-                        'en' => 'Available',
-                        'bg' => 'Свободен',
-                        'ca' => 'Disponible',
-                        'hr' => 'Dostupno',
-                        'cz' => 'Dostupný',
-                        'da' => 'Ledig',
-                        'nl' => 'Beschikbaar',
-                        'et' => 'Saadaval',
-                        'fi' => 'Käytettävissä',
-                        'fr' => 'Disponible',
-                        'gl' => 'Dispoñible',
-                        'de' => 'Verfügbar',
-                        'el' => 'Διαθέσιμος',
-                        'hu' => 'Elérhető',
-                        'it' => 'Disponibile',
-                        'jp' => '利用可能',
-                        'lt' => 'Yra',
-                        'no' => 'Tilgjengelig',
-                        'pl' => 'Dostępny',
-                        'pt' => 'Disponível',
-                        'ro' => 'Disponibil',
-                        'ru' => 'Доступный',
-                        'sr' => 'Доступан',
-                        'sk' => 'Dostupný',
-                        'sl' => 'Veljaven',
-                        'es' => 'Disponible',
-                        'sv' => 'Tillgängliga',
-                        'tr' => 'Mevcut',
-                        'ua' => 'Доступні',
-                    );
-                    foreach ($translations as $language_code => $legend_translation) {
-                        wpbs_add_legend_item_meta($legend_item_id, 'translation_' . $language_code, $legend_translation);
-                    }
-                }
-
-                if ($old_legend_item['name']['default'] == 'Booked') {
-                    // Add default translations
-                    $translations = array(
-                        'en' => 'Booked',
-                        'bg' => 'Резервирано',
-                        'ca' => 'Reservat',
-                        'hr' => 'Rezerviran',
-                        'cz' => 'Rezervováno',
-                        'da' => 'Reserveret',
-                        'nl' => 'Geboekt',
-                        'et' => 'Broneeritud',
-                        'fi' => 'Varattu',
-                        'fr' => 'Réservé',
-                        'gl' => 'Reservado',
-                        'de' => 'Gebucht',
-                        'el' => 'Κράτηση',
-                        'hu' => 'Foglalt',
-                        'it' => 'Riservato',
-                        'jp' => '予約済み',
-                        'lt' => 'Užsakyta',
-                        'no' => 'Bestilt',
-                        'pl' => 'Zarezerwowane',
-                        'pt' => 'Reservado',
-                        'ro' => 'Rezervat',
-                        'ru' => 'Бронирования',
-                        'sr' => 'Резервисан',
-                        'sk' => 'Rezervovaný',
-                        'sl' => 'Rezervirano',
-                        'es' => 'Reservado',
-                        'sv' => 'Bokad',
-                        'tr' => 'Rezervasyon',
-                        'ua' => 'Забронювали',
-                    );
-                    foreach ($translations as $language_code => $legend_translation) {
-                        wpbs_add_legend_item_meta($legend_item_id, 'translation_' . $language_code, $legend_translation);
-                    }
-                }
 
                 if ($legend_item_id) {
 
@@ -324,9 +248,16 @@ function wpbs_action_ajax_migrate_forms()
 
             $new_form_data = [];
 
+            $user_notification_email = null;
+
             foreach ($old_form_data as $old_field) {
 
                 $field = [];
+
+                // Save the email address field for later use
+                if ($old_field['fieldType'] == 'email') {
+                    $user_notification_email = '{' . $old_field['fieldId'] . ':' . $old_field['fieldName'] . '}';
+                }
 
                 // Add field types
                 $field['type'] = $old_field['fieldType'];
@@ -395,6 +326,12 @@ function wpbs_action_ajax_migrate_forms()
             // Get form settings
             $old_form_settings = json_decode($form['formOptions'], true);
 
+            // Add tracking script
+            if (isset($old_form_settings['trackingScript']) && !empty($old_form_settings['trackingScript'])) {
+                $tracking_script = str_replace(array('<script>', '</script>'),'',$old_form_settings['trackingScript']);
+                wpbs_add_form_meta($form_id, 'tracking_script', $tracking_script);
+            }
+
             // Add Button label
             if (isset($old_form_settings['submitLabel']) && !empty($old_form_settings['submitLabel'])) {
 
@@ -408,11 +345,16 @@ function wpbs_action_ajax_migrate_forms()
             }
 
             // Add Thank You Message
-            wpbs_add_form_meta($form_id, 'form_confirmation_type', 'message');
-            if (isset($old_form_settings['confirmationMessage']) && !empty($old_form_settings['confirmationMessage'])) {
-                wpbs_add_form_meta($form_id, 'form_confirmation_message', $old_form_settings['confirmationMessage']);
-            } else {
-                wpbs_add_form_meta($form_id, 'form_confirmation_message', 'The form was successfully submitted.');
+            if (isset($old_form_settings['thankYou']) && !empty($old_form_settings['thankYou'])) {
+                foreach ($old_form_settings['thankYou'] as $language => $message) {
+                    if ($language == 'default') {
+                        wpbs_add_form_meta($form_id, 'form_confirmation_message', $message);
+                    } else {
+                        wpbs_add_form_meta($form_id, 'form_confirmation_message_translation_' . $language, $message);
+                    }
+                }
+
+                wpbs_add_form_meta($form_id, 'form_confirmation_type', 'message');
             }
 
             // Admin Notification
@@ -423,6 +365,38 @@ function wpbs_action_ajax_migrate_forms()
                 wpbs_add_form_meta($form_id, 'admin_notification_message', '{All Fields}');
             }
 
+            // User Notification
+            if (isset($old_form_settings['enableAutoReply']) && $old_form_settings['enableAutoReply'] == 'yes') {
+                wpbs_add_form_meta($form_id, 'user_notification_enable', 'on');
+                wpbs_add_form_meta($form_id, 'user_notification_from_email', $old_form_settings['replyFromEmail']);
+                wpbs_add_form_meta($form_id, 'user_notification_reply_to', $old_form_settings['replyFromEmail']);
+                wpbs_add_form_meta($form_id, 'user_notification_from_name', $old_form_settings['replyFromName']);
+                wpbs_add_form_meta($form_id, 'user_notification_enable', 'on');
+                wpbs_add_form_meta($form_id, 'user_notification_send_to', $user_notification_email);
+            }
+
+            if (isset($old_form_settings['autoReplyEmailBody']) && !empty($old_form_settings['autoReplyEmailBody'])) {
+                foreach ($old_form_settings['autoReplyEmailBody'] as $language => $message) {
+                    if (isset($old_form_settings['autoReplyIncludeDetails']) && $old_form_settings['autoReplyIncludeDetails'] == true) {
+                        $message .= '<br><br> {All Fields}';
+                    }
+                    if ($language == 'default') {
+                        wpbs_add_form_meta($form_id, 'user_notification_message', $message);
+                    } else {
+                        wpbs_add_form_meta($form_id, 'user_notification_message_translation_' . $language, $message);
+                    }
+                }
+            }
+
+            if (isset($old_form_settings['autoReplyEmailSubject']) && !empty($old_form_settings['autoReplyEmailSubject'])) {
+                foreach ($old_form_settings['autoReplyEmailSubject'] as $language => $message) {
+                    if ($language == 'default') {
+                        wpbs_add_form_meta($form_id, 'user_notification_subject', $message);
+                    } else {
+                        wpbs_add_form_meta($form_id, 'user_notification_subject_translation_' . $language, $message);
+                    }
+                }
+            }
         }
 
     }
@@ -440,17 +414,17 @@ add_action('wp_ajax_wpbs_action_ajax_migrate_forms', 'wpbs_action_ajax_migrate_f
 function wpbs_action_ajax_migrate_bookings()
 {
 
-    // if (empty($_POST['token']) || !wp_verify_nonce($_POST['token'], 'wpbs_upgrader')) {
-    //     echo json_encode(array('success' => 0));
-    //     wp_die();
-    // }
+    if (empty($_POST['token']) || !wp_verify_nonce($_POST['token'], 'wpbs_upgrader')) {
+        echo json_encode(array('success' => 0));
+        wp_die();
+    }
 
-    // $do_upgrade = wpbs_process_upgrade_from();
+    $do_upgrade = wpbs_process_upgrade_from();
 
-    // if (false == $do_upgrade) {
-    //     echo json_encode(array('success' => 0));
-    //     wp_die();
-    // }
+    if (false == $do_upgrade) {
+        echo json_encode(array('success' => 0));
+        wp_die();
+    }
 
     /**
      * Verify for the existance of bookings
@@ -483,34 +457,42 @@ function wpbs_action_ajax_migrate_bookings()
                 continue;
             }
 
+
             $form_id = $booking['formID'];
 
-            $old_booking_data = json_decode($booking['bookingData'], true);
+            $old_booking_data = json_decode($booking['bookingData'],true);
 
             $form = wpbs_get_form($form_id);
 
-            $form_fields = $form->get('fields');
+            if(!is_null($form)){
+                $form_fields = $form->get('fields');
+            } else {
+                $form_fields = array();
+            }
 
-            $submitted_language = isset($old_booking_data['submittedLanguage']) ? $old_booking_data['submittedLanguage'] : 'default';
+
+            $submitted_language = $old_booking_data['submittedLanguage'];
 
             $new_booking_data = [];
-            foreach ($old_booking_data as $field_id => $user_value) {
-
+            foreach($old_booking_data as $field_id => $user_value){
+                
                 $new_booking_field = null;
 
-                foreach ($form_fields as $field) {
-
-                    if (isset($field['values'][$submitted_language]) && $field['values'][$submitted_language]['label'] == $field_id) {
+                foreach($form_fields as $field){
+                    
+                    if(isset($field['values'][$submitted_language]) && $field['values'][$submitted_language]['label'] == $field_id){
                         $new_booking_field = $field;
                         break;
-                    } elseif ($field['values']['default']['label'] == $field_id) {
+                    } elseif($field['values']['default']['label'] == $field_id){
                         $new_booking_field = $field;
                         break;
                     }
+                    
+                    
 
                 }
-
-                if ($new_booking_field !== null) {
+                
+                if($new_booking_field !== null){
                     $new_booking_field['user_value'] = $user_value;
                     $new_booking_data[] = $new_booking_field;
                 }
@@ -524,15 +506,16 @@ function wpbs_action_ajax_migrate_bookings()
             $booking_data = array(
                 'id' => $booking['bookingID'],
                 'calendar_id' => $booking['calendarID'],
-                'form_id' => $booking['formID'],
+                'form_id' => $booking['formID'],   
                 'start_date' => date('Y-m-d H:i:s', $booking['startDate']),
-                'end_date' => date('Y-m-d H:i:s', $booking['endDate']),
+                'end_date' => date('Y-m-d H:i:s', $booking['endDate']),             
                 'fields' => $new_booking_data,
                 'status' => $booking['bookingStatus'],
                 'is_read' => $booking['bookingRead'],
                 'date_created' => date('Y-m-d H:i:s', $booking['createdDate']),
                 'date_modified' => date('Y-m-d H:i:s', $booking['createdDate']),
-
+                'invoice_hash' => wpbs_generate_hash(),
+                'cancellation_hash' => wpbs_generate_hash(),
             );
 
             $booking_id = wpbs_insert_booking($booking_data);
@@ -540,6 +523,8 @@ function wpbs_action_ajax_migrate_bookings()
         }
 
     }
+
+    
 
     echo json_encode(array('success' => 1));
     wp_die();
@@ -600,7 +585,7 @@ function wpbs_action_ajax_migrate_events()
             // Set calendar data
             $calendar_data = json_decode($calendar['calendarData'], true);
 
-            foreach ($calendar_data as $year => $months) {
+            if($calendar_data) foreach ($calendar_data as $year => $months) {
 
                 foreach ($months as $month => $date_values) {
 
@@ -725,6 +710,16 @@ function wpbs_action_ajax_migrate_general_settings()
      *
      */
     $new_settings = array();
+
+    // History color
+    if (!empty($old_settings['historyColor'])) {
+        $new_settings['booking_history_color'] = $old_settings['historyColor'];
+    }
+
+    // Start day
+    if (!empty($old_settings['backendStartDay'])) {
+        $new_settings['backend_start_day'] = $old_settings['backendStartDay'];
+    }
 
     // User roles
     if (!empty($old_settings['role_slug'])) {

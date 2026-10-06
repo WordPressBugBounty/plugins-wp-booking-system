@@ -103,7 +103,7 @@ abstract class WPBS_Object_DB extends WPBS_DB {
 		}
 
 
-		if( ! empty( $callback ) && is_callable( $callback ) )
+		if( ! empty( $callback ) && is_callable( $callback ) && !empty($results) )
 			$results = array_map( $callback, $results );
 
 		return $results;

@@ -56,12 +56,14 @@ Class WPBS_WP_List_Table_Forms extends WPBS_WP_List_Table {
 		 * @param int
 		 *
 		 */
-		$this->items_per_page = apply_filters( 'wpbs_list_table_form_items_per_page', 20 );
+		$this->items_per_page = apply_filters( 'wpbs_list_table_form_items_per_page', 10 );
 
 		$this->paged = ( ! empty( $_GET['paged'] ) ? (int)$_GET['paged'] : 1 );
 
+		$form_status = ( ! empty( $_GET['form_status'] ) ? esc_attr( $_GET['form_status'] ) : 'active' );
+
 		$this->set_pagination_args( array(
-            'total_items' => wpbs_get_forms( array( 'number' => -1, 'search'  => ( ! empty( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '' ) ), true ),
+            'total_items' => wpbs_get_forms( array( 'number' => -1, 'status' => $form_status, 'search'  => ( ! empty( $_GET['s'] ) ? esc_attr( $_GET['s'] ) : '' ) ), true ),
             'per_page'    => $this->items_per_page
         ));
 
@@ -245,6 +247,19 @@ Class WPBS_WP_List_Table_Forms extends WPBS_WP_List_Table {
 
 	}
 
+	/**
+	 * Returns the HTML that will be displayed in the "ID" column
+	 *
+	 * @param array $item 			- data for the current row
+	 * @param string $column_name 	- name of the current column
+	 *
+	 * @return string
+	 *
+	 */
+	public function column_id( $item ) {
+		return '<span class="wpbs-list-table-id">' . $item['id'] . '</span>';
+	}
+
 
 	/**
 	 * Returns the HTML that will be displayed in the "date_created" column
@@ -256,7 +271,7 @@ Class WPBS_WP_List_Table_Forms extends WPBS_WP_List_Table {
 	 */
 	public function column_date_created( $item ) {
 
-		$output = date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $item['date_created'] ) );
+		$output = wpbs_date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $item['date_created'] ) );
 
 		return $output;
 
@@ -273,7 +288,7 @@ Class WPBS_WP_List_Table_Forms extends WPBS_WP_List_Table {
 	 */
 	public function column_date_modified( $item ) {
 
-		$output = date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $item['date_modified'] ) );
+		$output = wpbs_date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $item['date_modified'] ) );
 
 		return $output;
 

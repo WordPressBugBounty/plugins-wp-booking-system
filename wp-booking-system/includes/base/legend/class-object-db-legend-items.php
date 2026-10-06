@@ -111,15 +111,13 @@ Class WPBS_Object_DB_Legend_Items extends WPBS_Object_DB {
 		// Is default where clause
 		if( isset( $args['auto_pending'] ) ) {
 
-			$auto_pending = $args['auto_pending'];
+			$auto_pending = esc_sql($args['auto_pending']);
 			$where .= " AND auto_pending = '{$auto_pending}'";
 
 		}
 
-		$where .= " AND type = 'single'";
-
 		// Orderby
-		$orderby = sanitize_text_field( $args['orderby'] );
+		$orderby = esc_sql( $args['orderby'] );
 
 		// Order
 		$order = ( 'DESC' === strtoupper( $args['order'] ) ? 'DESC' : 'ASC' );
@@ -158,14 +156,14 @@ Class WPBS_Object_DB_Legend_Items extends WPBS_Object_DB {
 			id bigint(10) NOT NULL AUTO_INCREMENT,
 			type varchar(255) NOT NULL,
 			name text NOT NULL,
-			color text NOT NULL,
-			color_text text,
-			is_default tinyint(1) NOT NULL,
-			is_visible tinyint(1) NOT NULL,
-			is_bookable tinyint(1) NOT NULL,
-			auto_pending varchar(20),
-			calendar_id bigint(10) NOT NULL,
-			PRIMARY KEY  id (id)
+			color text NULL,
+			color_text text NULL,
+			is_default tinyint(1) NULL DEFAULT '0',
+			is_visible tinyint(1) NULL DEFAULT '0',
+			is_bookable tinyint(1) NULL DEFAULT '0',
+			auto_pending varchar(20) NULL DEFAULT '',
+			calendar_id bigint(10) NULL DEFAULT '0',
+			PRIMARY KEY (id)
 		) {$charset_collate};";
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );

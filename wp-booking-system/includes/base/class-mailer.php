@@ -8,74 +8,182 @@ if (!defined('ABSPATH')) {
 class WPBS_Mailer
 {
     /**
-     * The recepient of the email
+     * The recipient of the email
      *
-     * @access protected
+     * @access public
      * @var    string
      *
      */
-    protected $send_to;
+    public $send_to;
+
+    /**
+     * CC email(s)
+     *
+     * @access public
+     * @var    string
+     *
+     */
+    public $send_to_cc;
+
+    /**
+     * BCC email(s)
+     *
+     * @access public
+     * @var    string
+     *
+     */
+    public $send_to_bcc;
 
     /**
      * The From Name header
      *
-     * @access protected
+     * @access public
      * @var    string
      *
      */
-    protected $from_name;
+    public $from_name;
 
     /**
      * The From Email header
      *
-     * @access protected
+     * @access public
      * @var    string
      *
      */
-    protected $from_email;
+    public $from_email;
 
     /**
      * The Reply To header
      *
-     * @access protected
+     * @access public
      * @var    string
      *
      */
-    protected $reply_to;
+    public $reply_to;
 
     /**
      * The email subject
      *
-     * @access protected
+     * @access public
      * @var    string
      *
      */
-    protected $subject;
+    public $subject;
 
     /**
      * The email message
      *
-     * @access protected
+     * @access public
      * @var    string
      *
      */
-    protected $message;
+    public $message;
+
+    /**
+     * The attachments
+     *
+     * @access public
+     * @var    string
+     *
+     */
+    public $attachments = array();
+
+    /**
+     * The type of the email
+     * 
+     * @access public
+     * @var    string
+     * 
+     */
+    public $type;
+
+    /**
+     * Plugin Settings
+     * 
+     * @access protected
+     * @var    array
+     * 
+     */
+    public $settings;
+
+    /**
+     * Booking
+     * 
+     * @access public
+     * @var    WPBS_Booking
+     * 
+     */
+    public $booking;
+
+    /**
+     * WPBS_Email id
+     * 
+     * @access public
+     * @var    int
+     * 
+     */
+    public $email_id;
+
+    /**
+     * @param WPBS_Booking $booking 
+     * 
+     */
+    public function __construct($booking = false)
+    {
+        /**
+         * Set the Booking
+         * 
+         */
+        $this->booking = $booking;
+    }
+
+    /**
+     * Set the content type of the email to "text/html"
+     *
+     * @return string
+     *
+     */
+    public function mail_content_type()
+    {
+        return "text/html";
+    }
+
+    public function log_email()
+    {
+
+        if (!isset($this->settings['email_logs']) || $this->settings['email_logs'] != 'on') {
+            return false;
+        }
+
+        $log_data = array(
+            'send_date' => current_time('timestamp'),
+            'email_type' => $this->type,
+            'send_to' => $this->send_to,
+            'from_name' => $this->from_name,
+            'reply_to' => $this->reply_to,
+            'from_email' => $this->from_email,
+            'send_to_cc' => $this->send_to_cc,
+            'send_to_bcc' => $this->send_to_bcc,
+            'subject' => $this->subject,
+            'message' => $this->message
+        );
+
+        wpbs_add_booking_meta($this->booking->get('id'), 'email_log', $log_data);
+    }
 
     /**
      * Sent the email
-     * 
+     *
      */
     public function send()
     {
         // If send_to is empty, exit
-        if (empty($this->send_to)) {
+        if (empty($this->send_to) || $this->send_to == '-') {
             return false;
         }
 
-        // Email Headers
+        // Add Headers
         $headers = array();
-        $headers[] = 'MIME-Version: 1.0';
-        $headers[] = 'Content-type: text/html; charset=utf-8';
 
         if (!empty($this->from_email)) {
             $headers[] = 'From: ' . $this->from_name . ' <' . $this->from_email . '>';
@@ -85,16 +193,48 @@ class WPBS_Mailer
             $headers[] = 'Reply-To: ' . $this->reply_to;
         }
 
-        wp_mail($this->send_to, $this->subject, $this->message, $headers);
+        if (!empty($this->send_to_cc)) {
+            $headers[] = 'Cc: ' . $this->send_to_cc;
+        }
 
-        // For development purposes.
-        
-        // $fp = fopen(ABSPATH . "/emails/" .time().'.html', 'w');
-        // fwrite($fp, $this->send_to);
-        // fwrite($fp, $this->subject);
-        // fwrite($fp, $this->message);
-        // fclose($fp);
+        if (!empty($this->send_to_bcc)) {
+            $headers[] = 'Bcc: ' . $this->send_to_bcc;
+        }
 
+        $this->message = wpautop($this->message);
+
+        $this->message = stripslashes($this->message);
+
+        $this->subject = stripslashes($this->subject);
+
+        $this->settings = get_option('wpbs_settings');
+
+        if (!isset($this->settings['fancy_emails_disable']) || $this->settings['fancy_emails_disable'] != 'on') {
+
+            $language = wpbs_get_booking_meta($this->booking->get('id'), 'submitted_language', true);
+
+            $email_template = new WPBS_Email_Template($this->message, $language);
+            $this->message = $email_template->get_output();
+        }
+
+        $this->message = apply_filters('wpbs_mailer_field_message', $this->message);
+
+        $this->log_email();
+
+        // Set the content type to HTML
+        add_filter('wp_mail_content_type', array($this, 'mail_content_type'));
+
+        // ..and off you go
+        $email = wp_mail($this->send_to, $this->subject, $this->message, $headers, $this->attachments);
+
+        // Remove filters after sending the email
+        remove_filter('wp_mail_content_type', array($this, 'mail_content_type'));
+
+        if ($email === false) {
+            do_action('wpbs_mailer_email_failed_to_send', $this);
+            return false;
+        }
+
+        do_action('wpbs_mailer_end', $this);
     }
-
 }

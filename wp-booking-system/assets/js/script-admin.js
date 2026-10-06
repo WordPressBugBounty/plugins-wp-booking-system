@@ -1,6 +1,30 @@
 jQuery(function ($) {
+    // Fix Mobile Issues
+    resizeItems = function () {
+        if ($(".wpbs-plugin-header").length && $(window).width() > 1200) {
+            if (($(".wpbs-plugin-header nav").outerWidth(true) + $("#wpbs-logo").width()) > $(".wpbs-plugin-header").width()) {
+                $("body").addClass('show-mobile-menu');
+            };
+        } else {
+            $("body").removeClass('show-mobile-menu');
+        };
+    };
 
-	/*
+
+    var w = $(window).width();
+    $(window).resize(function () {
+        // Resize Items
+        if ($(window).width() == w) return;
+        w = $(window).width();
+        resizeItems();
+    });
+
+    $(document).ready(function () {
+        resizeItems();
+    });
+
+
+    /*
      * Strips one query argument from a given URL string
      *
      */
@@ -43,36 +67,66 @@ jQuery(function ($) {
     }
 
 
-	/**
-	 * Initialize colorpicker
-	 *
-	 */
+    /**
+     * Initialize colorpicker
+     *
+     */
     $('.wpbs-colorpicker').wpColorPicker();
 
-	/**
-	 * Initialize Chosen
-	 *
-	 */
+    /**
+     * Initialize Chosen
+     *
+     */
     if (typeof $.fn.chosen != 'undefined') {
 
         $('.wpbs-chosen').chosen();
 
     }
 
-	/**
-	 * Links that have the inactive class should do nothing
-	 *
-	 */
+    /**
+     * Links that have the inactive class should do nothing
+     *
+     */
     $(document).on('click', 'a.wpbs-inactive, input[type=submit].wpbs-inactive', function () {
 
         return false;
 
     });
 
-	/**
-	 * Initialize the sortable function on the Calendar Legend List Table
-	 *
-	 */
+    /**
+     * Image Upload Scripts
+     * 
+     */
+    $('.wpbs-media-upload-button').click(function (e) {
+        e.preventDefault();
+        var $button = $(this);
+        var image = wp.media({
+            title: 'Upload Image',
+            multiple: false
+        }).open()
+            .on('select', function (e) {
+                var uploaded_image = image.state().get('selection').first();
+                var image_url = uploaded_image.toJSON().url;
+                $button.parents('.wpbs-input').find('.wpbs-media-upload-preview-wrap').removeClass('no-image');
+                $button.parents('.wpbs-input').find('.wpbs-media-upload-preview').attr('src', image_url);
+                $button.parents('.wpbs-input').find('.wpbs-media-upload-url').val(image_url);
+                $button.parents('.wpbs-input').find('.wpbs-media-upload-remove').removeClass('wpbs-hide');
+            });
+    });
+
+    $('.wpbs-media-upload-remove').click(function (e) {
+        e.preventDefault();
+        var $this = $(this);
+        $this.parents('.wpbs-input').find('.wpbs-media-upload-preview-wrap').addClass('no-image');
+        $this.parents('.wpbs-input').find('.wpbs-media-upload-preview').attr('src', '');
+        $this.parents('.wpbs-input').find('.wpbs-media-upload-url').val('');
+        $this.addClass('wpbs-hide');
+    })
+
+    /**
+     * Initialize the sortable function on the Calendar Legend List Table
+     *
+     */
     $('table.wpbs_legend_items tbody').sortable({
         handle: '.wpbs-move-legend-item',
         containment: '#wpcontent',
@@ -98,7 +152,7 @@ jQuery(function ($) {
 
             var data = {
                 action: 'wpbs_sort_legend_items',
-                token: $('[name="wpbs_token"]').val(),
+                token: $('.tablenav.bottom [name="wpbs_token"]').val(),
                 calendar_id: $('[name="calendar_id"]').val(),
                 legend_item_ids: legend_item_ids
             }
@@ -133,17 +187,19 @@ jQuery(function ($) {
     $('table.wpbs_legend_items tbody').disableSelection();
 
 
-	/**
-	 * Handle show/hide of the second color option for Legend Item add/edit screen
-	 *
-	 */
+    /**
+     * Handle show/hide of the second color option for Legend Item add/edit screen
+     *
+     */
     $(document).on('change', 'select[name="legend_item_type"]', function () {
 
-        if ($(this).val() == 'single')
+        if ($(this).val() == 'single') {
+            $('#wpbs-legend-item-color-2').closest('.wpbs-input').removeClass('wpbs-input-two-col');
             $('#wpbs-legend-item-color-2').closest('.wp-picker-container').hide();
-        else
+        } else {
+            $('#wpbs-legend-item-color-2').closest('.wpbs-input').addClass('wpbs-input-two-col');
             $('#wpbs-legend-item-color-2').closest('.wp-picker-container').show();
-
+        };
     });
 
     $(document).ready(function () {
@@ -162,46 +218,77 @@ jQuery(function ($) {
 
     });
 
-	/**
-	 * Tab Navigation
-	 *
-	 */
+    /**
+     * Tab Navigation
+     *
+     */
     $(document).on('click', '.wpbs-nav-tab', function (e) {
+
+        // Disable tab navigation for Forms
+        if ($(this).parents('.wpbs-wrap-edit-form').length) {
+            return;
+        }
+
+        if (!wpbs_admin.wpbs_enhanced_admin_ui && ($(this).parents('.wpbs-wrap-settings').length)) {
+            return;
+        }
+
         e.preventDefault();
 
+        $parent = $(this).parents('.wpbs-box');
+
         // Nav Tab activation
-        $('.wpbs-nav-tab').removeClass('wpbs-active').removeClass('nav-tab-active');
-        $(this).addClass('wpbs-active').addClass('nav-tab-active');
+        $parent.find('.wpbs-nav-tab').removeClass('wpbs-active').removeClass('wpbs-nav-tab-active');
+        $(this).addClass('wpbs-active').addClass('wpbs-nav-tab-active');
 
         // Show tab
-        $('.wpbs-tab').removeClass('wpbs-active');
+        $parent.find('.wpbs-tab').removeClass('wpbs-active');
 
         var nav_tab = $(this).attr('data-tab');
-        $('.wpbs-tab[data-tab="' + nav_tab + '"]').addClass('wpbs-active');
-        $('input[name=active_tab]').val(nav_tab);
+        $parent.find('.wpbs-tab[data-tab="' + nav_tab + '"]').addClass('wpbs-active');
+        $parent.find('input[name=active_tab]').val(nav_tab);
 
         // Change http referrer
-        $_wp_http_referer = $('input[name=_wp_http_referer]');
+        $_wp_http_referer = $parent.find('input[name=_wp_http_referer]');
 
         var _wp_http_referer = $_wp_http_referer.val();
 
         if (_wp_http_referer) {
             _wp_http_referer = remove_query_arg('tab', _wp_http_referer);
+            _wp_http_referer = remove_query_arg('section', _wp_http_referer);
             $_wp_http_referer.val(add_query_arg('tab', $(this).attr('data-tab'), _wp_http_referer));
         }
 
+        $(window).trigger('resize');
 
+        wpbs_tabs_navigation_decoration_level3();
     });
 
 
+    /**
+     * Link Calendar
+     *
+     */
+    $('#wpbs-settings-field-wrapper-calendar-link-' + $('[name="calendar_link_type"]').val()).show();
+
+    $(document).on('change', '[name="calendar_link_type"]', function () {
+
+        $('#wpbs-settings-field-wrapper-calendar-link-internal').hide();
+        $('#wpbs-settings-field-wrapper-calendar-link-external').hide();
+
+        $('#wpbs-settings-field-wrapper-calendar-link-' + $(this).val()).show();
+
+    });
 
     /**
-	 * Calendar Title Translations Toggle
-	 */
-    $(".wrap.wpbs-wrap-edit-calendar #titlediv .titlewrap-toggle").click(function (e) {
+     * Calendar Title Translations Toggle
+     */
+    $(".wrap.wpbs-wrap .titlewrap-toggle").click(function (e) {
         e.preventDefault();
         $(this).toggleClass('open');
-        $(".titlewrap-translations").slideToggle();
+        $(".titlewrap-translations").stop().slideToggle(200, function () {
+            $(window).trigger('resize');
+        });
 
     });
 
@@ -209,27 +296,29 @@ jQuery(function ($) {
      * Toggle settings translations
      * 
      */
-    $(".wpbs-wrap").on('click', '.wpbs-settings-field-show-translations', function (e) {
+    $(document).on('click', '.wpbs-form-translations-toggle', function (e) {
         e.preventDefault();
-        $(this).parents('.wpbs-settings-field-translation-wrapper').find(".wpbs-settings-field-translations").slideToggle();
+        $(this).siblings(".wpbs-form-translations").stop().slideToggle(200, function () {
+            $(window).trigger('resize');
+        });
         $(this).toggleClass('open');
     })
 
 
-	/**
-	 * Modifies the modal inner height to permit the scrollbar to function properly
-	 *
-	 */
+    /**
+     * Modifies the modal inner height to permit the scrollbar to function properly
+     *
+     */
     $(window).resize(function () {
 
         $('.wpbs-modal-inner').outerHeight($('.wpbs-modal.wpbs-active').outerHeight() - $('.wpbs-modal.wpbs-active .wpbs-modal-header').outerHeight() - $('.wpbs-modal.wpbs-active .wpbs-modal-nav-tab-wrapper').outerHeight());
 
     });
 
-	/**
-	 * Close modal window
-	 *
-	 */
+    /**
+     * Close modal window
+     *
+     */
     $(document).on('click', '.wpbs-modal-close', function (e) {
 
         e.preventDefault();
@@ -243,20 +332,20 @@ jQuery(function ($) {
 
     });
 
-	/**
-	 * Close modal on clicking the modal overlay
-	 *
-	 */
+    /**
+     * Close modal on clicking the modal overlay
+     *
+     */
     $(document).on('click', '.wpbs-modal-overlay.wpbs-active', function (e) {
 
         $('.wpbs-modal.wpbs-active').find('.wpbs-modal-close').click();
 
     });
 
-	/**
-	 * Open Shortcode Generator modal
-	 *
-	 */
+    /**
+     * Open Shortcode Generator modal
+     *
+     */
     $(document).on('click', '#wpbs-shortcode-generator-button', function (e) {
 
         e.preventDefault();
@@ -269,10 +358,10 @@ jQuery(function ($) {
 
     });
 
-	/**
-	 * Builds the shortcode for the Single Calendar and inserts it in the WordPress text editor
-	 *
-	 */
+    /**
+     * Builds the shortcode for the Single Calendar and inserts it in the WordPress text editor
+     *
+     */
     $(document).on('click', '#wpbs-insert-shortcode-single-calendar', function (e) {
 
         e.preventDefault();
@@ -296,13 +385,107 @@ jQuery(function ($) {
 
     });
 
+    /**
+     * Builds the shortcode for the Yearly Calendar and inserts it in the WordPress text editor
+     *
+     */
+    $(document).on('click', '#wpbs-insert-shortcode-yearly-calendar', function (e) {
+
+        e.preventDefault();
+
+        // Begin shortcode
+        var shortcode = '[wpbs-yearly ';
+
+        $('#wpbs-modal-add-calendar-shortcode.wpbs-active .wpbs-shortcode-generator-field-calendar-yearly').each(function () {
+
+            shortcode += $(this).data('attribute') + '="' + $(this).val() + '" ';
+
+        });
+
+        // End shortcode
+        shortcode = shortcode.trim();
+        shortcode += ']';
+
+        window.send_to_editor(shortcode);
+
+        $(this).closest('.wpbs-modal').find('.wpbs-modal-close').first().trigger('click');
+
+    });
 
 
+    /**
+     * Make the Selected Calendars available for selection if "Display Calendars" value is set
+     * to "Selected Calendars"
+     *
+     */
+    $(document).on('change', '#modal-add-calendar-overview-shortcode-calendars', function () {
 
-	/**
-	 * Register and deregister website functionality
-	 *
-	 */
+        if ($(this).val() == '2')
+            $('#modal-add-calendar-overview-shortcode-selected-calendars').parents('.wpbs-tab').find('.wpbs-shortcode-generator-calendars-selector').removeClass('wpbs-element-disabled');
+        else
+            $('#modal-add-calendar-overview-shortcode-selected-calendars').parents('.wpbs-tab').find('.wpbs-shortcode-generator-calendars-selector').addClass('wpbs-element-disabled');
+
+    });
+
+
+    /**
+     * Builds the shortcode for the Overview Calendar and inserts it in the WordPress text editor
+     *
+     */
+    $(document).on('click', '#wpbs-insert-shortcode-overview-calendar', function (e) {
+
+        e.preventDefault();
+
+        // Begin shortcode
+        var shortcode = '[wpbs-overview ';
+
+        // Add the calendars shortcode attribute
+        var calendars = $('#modal-add-calendar-overview-shortcode-calendars').val();
+
+        if (calendars == '1')
+            shortcode += 'calendars="all" ';
+
+        // For selected calendars we want to maintain the order selected by the user, so grabbing
+        // the value from the multiple select won't be enough, as this does not maintain the order
+        else {
+
+            var $select = $('#modal-add-calendar-overview-shortcode-selected-calendars');
+            var select_val = '';
+
+            $select.siblings('.chosen-container').find('li.search-choice a').each(function () {
+
+                select_val += $select.find('option').eq($(this).data('option-array-index')).val() + ','
+
+            });
+
+            // Trim the last comma
+            select_val = select_val.slice(0, -1);
+
+            shortcode += 'calendars="' + select_val + '" ';
+
+        }
+
+        // Add the rest of the attributes
+        $('#wpbs-modal-add-calendar-shortcode.wpbs-active .wpbs-shortcode-generator-field-calendar-overview').each(function () {
+
+            shortcode += $(this).data('attribute') + '="' + $(this).val() + '" ';
+
+        });
+
+        // End shortcode
+        shortcode = shortcode.trim();
+        shortcode += ']';
+
+        window.send_to_editor(shortcode);
+
+        $(this).closest('.wpbs-modal').find('.wpbs-modal-close').first().trigger('click');
+
+    });
+
+    /**
+     * Register and deregister website functionality
+     *
+     */
     $(document).on('click', '#wpbs-register-website-button, #wpbs-deregister-website-button', function (e) {
 
         e.preventDefault();
@@ -319,18 +502,49 @@ jQuery(function ($) {
     });
 
 
+
     /**
      * Toggle wrapper fields
      */
     $(document).on('change', '.wpbs-settings-wrap-toggle', function () {
-        $(this).closest('.wpbs-tab').find(".wpbs-settings-wrapper").toggleClass('wpbs-settings-wrapper-show');
+        $($(this).data('target')).toggleClass('wpbs-settings-wrapper-show');
+        $(window).trigger('resize');
     })
 
-	/**
-	 * Move the calendar from the sidebar to the main content and back in the calendar edit screen 
-	 * when resizing the window
-	 *
-	 */
+    /**
+     * Sub Tab Navigation
+     * 
+     */
+    $(document).on('click', '.wpbs-tab:not(.wpbs-tab-form-builder) .wpbs-sub-tab-navigation a', function (e) {
+        e.preventDefault();
+        var $parent = $(this).parents('.wpbs-tab');
+        $parent.find('.wpbs-sub-tab-navigation a').removeClass('current');
+        $(this).addClass('current');
+
+        $parent.find('.wpbs-sub-tabs .wpbs-tab').removeClass('wpbs-section-active');
+        $parent.find('.wpbs-sub-tabs .wpbs-tab[data-tab="' + $(this).data('tab') + '"]').addClass('wpbs-section-active');
+
+        // Change http referrer
+        $_wp_http_referer = $('input[name=_wp_http_referer]');
+
+        var _wp_http_referer = $_wp_http_referer.val();
+
+        if (_wp_http_referer) {
+            _wp_http_referer = remove_query_arg('section', _wp_http_referer);
+            $_wp_http_referer.val(add_query_arg('section', $(this).attr('data-tab'), _wp_http_referer));
+        }
+
+        $(window).trigger('resize');
+
+    });
+
+   
+
+    /**
+     * Move the calendar from the sidebar to the main content and back in the calendar edit screen 
+     * when resizing the window
+     *
+     */
     $(window).on('resize', function () {
 
         // Move the calendar from the sidebar to the main content
@@ -359,6 +573,122 @@ jQuery(function ($) {
 
     $(window).on('resize', wpbs_calendar_editor_dynamic_layout);
 
+    /**
+     * reCaptcha toggle boxes
+     * 
+     */
+    $("#recaptcha_type").change(function () {
+        $(".wpbs-form-field-recapthca").addClass('wpbs-hide');
+        $(".wpbs-form-field-recapthca-" + $(this).val()).removeClass('wpbs-hide');
+    }).trigger('change');
+
+    /**
+     * Part Payments applicability toggle
+     * 
+     */
+    $("#payment_part_payments_applicability").change(function () {
+        if ($(this).val() == 'optional') {
+            $(".payment_part_payments_applicability_default-wrap").removeClass('wpbs-hide');
+        } else {
+            $(".payment_part_payments_applicability_default-wrap").addClass('wpbs-hide')
+        }
+    }).trigger('change');
+
+
+    /**
+     * Customizer
+     * 
+     */
+    var wpbs_customizer_themes = {
+        'default': {
+            'header_background_color': '#f5f5f5',
+            'header_text_color': '#000',
+            'header_arrow_background_color': '#bdc3c7',
+            'header_arrow_color': '#fff',
+            'header_dropdown_background_color': '#fff',
+            'header_dropdown_border_color': '#bdc3c7',
+            'header_dropdown_color': '#000',
+            'calendar_background_color': '#fff',
+            'calendar_border_color': '#f1f1f1',
+            'calendar_text_color': '#000',
+            'dates_pad_cells': '#f7f7f7',
+            'dates_weeknumbers': '#e8e8e8',
+            'dates_border_radius': '0',
+            'form_text_color': '',
+            'form_field_background_color': '#ffffff',
+            'form_field_border_color': '#cccccc',
+            'form_field_text_color': '#000000',
+            'form_field_placeholder_text_color': '#ccc',
+            'form_field_description_text_color': '#333',
+            'form_field_border_radius': '2',
+            'form_checkbox_background_color': '#e2e2e2',
+            'form_checkbox_hover_background_color': '#aaa',
+            'form_button_background_color': '#aaaaaa',
+            'form_button_text_color': '#ffffff',
+            'form_button_hover_background_color': '#7f7f7f',
+            'form_button_hover_text_color': '#ffffff',
+            'form_button_border_radius': '2',
+            'form_error_message_color': '#f13618',
+            'form_payment_description': '#f7f7f7',
+            'form_table_heading_background': '#f7f7f7',
+            'form_max_width': '500',
+        },
+        'dark': {
+            'header_background_color': '#474747',
+            'header_text_color': '#c1c1c1',
+            'header_arrow_background_color': '#6a6a6a',
+            'header_arrow_color': '#c1c1c1',
+            'header_dropdown_background_color': '#6a6a6a',
+            'header_dropdown_border_color': '#6a6a6a',
+            'header_dropdown_color': '#c1c1c1',
+            'calendar_background_color': '#262626',
+            'calendar_border_color': '#262626',
+            'calendar_text_color': '#c1c1c1',
+            'dates_pad_cells': '#474747',
+            'dates_weeknumbers': '#848484',
+            'dates_border_radius': '0',
+            'form_text_color': '#c1c1c1',
+            'form_field_background_color': '#262626 ',
+            'form_field_border_color': '#262626 ',
+            'form_field_text_color': '#c1c1c1',
+            'form_field_placeholder_text_color': '#8b8b8b',
+            'form_field_description_text_color': '#a6a6a6',
+            'form_field_border_radius': '2',
+            'form_checkbox_background_color': '#262626',
+            'form_checkbox_hover_background_color': '#aaa',
+            'form_button_background_color': '#262626 ',
+            'form_button_text_color': '#c1c1c1',
+            'form_button_hover_background_color': '#7f7f7f',
+            'form_button_hover_text_color': '#c1c1c1',
+            'form_button_border_radius': '2',
+            'form_error_message_color': '#ff2300',
+            'form_payment_description': '#474747',
+            'form_table_heading_background': '#474747',
+            'form_max_width': '500',
+        }
+    }
+
+    $('body').on('change', '#_customize-input-wpbs_preset_themes', function (e) {
+
+        var $select = $(this);
+        var newval = $select.val().split('-')[1];
+        if (typeof wpbs_customizer_themes[newval] !== 'undefined') {
+            $.each(wpbs_customizer_themes[newval], function (field, value) {
+                var $parent = $("#customize-control-wpbs_" + field);
+                if ($parent.find(".color-picker-hex").length) {
+                    $parent.find(".color-picker-hex").val(value).trigger('change');
+                }
+                if ($parent.find('#_customize-input-wpbs_' + field)) {
+                    $parent.find('#_customize-input-wpbs_' + field).val(value).trigger('change');
+                }
+
+            });
+            $('#_customize-input-wpbs_preset_themes').val('');
+            $("#sub-accordion-section-wpbs_presets_options .customize-section-back").trigger('click');
+        }
+
+    })
+
 
     /**
      * Submit the form when changing the ledeng's auto pending <select>
@@ -368,67 +698,805 @@ jQuery(function ($) {
         $(this).parents('form').submit();
     })
 
-    
+    /**
+     * Widget Selected Calendars
+     * 
+     */
+    $(document).on('change', '.wpbs-widget-option-display-calendars', function () {
+        $widget = $(this).parents('.widget-content');
+        if ($(this).val() == 1) {
+            $widget.find('.wpbs-selected-months').hide();
+        } else {
+            $widget.find('.wpbs-selected-months').show();
+        }
+    })
+
+    $(document).on('widget-updated', function (e, widget) {
+        $(".widget-content").each(function () {
+            if ($(this).find('.wpbs-widget-option-display-calendars').length) {
+                if ($(this).find('.wpbs-widget-option-display-calendars').val() == 1) {
+                    $(this).find('.wpbs-selected-months').hide();
+                } else {
+                    $(this).find('.wpbs-selected-months').show();
+                }
+            }
+        })
+    });
+
+
+    $(document).ready(function () {
+        // Hide booking IDs on mobile if empty
+        $(".wpbs-calendar-date-booking-id").each(function () {
+            $this = $(this);
+            if ($this.text() == '\xa0') {
+                $this.parent().addClass('hide');
+            };
+        })
+    });
+
+    /**
+     * Add Tax row in Settings
+     * 
+     */
+    $(document).on('click', ".wpbs-settings-tax-add", function (e) {
+        e.preventDefault();
+        $tax_row = $(".wpbs-tax-fields .wpbs-tax-field").first().clone();
+        $tax_row.find('input').val('');
+        $tax_row.find('select').prop('selectedIndex', 0);
+        $tax_row.find('select[multiple] option').removeProp('selected');
+        $tax_row.find('select[multiple]').val('');
+        $tax_row.find('.wpbs-tax-type').addClass('wpbs-hide')
+        $tax_row.find('.wpbs-tax-type-percentage').removeClass('wpbs-hide')
+        $tax_row.find(".wpbs-tax-datepicker").removeClass('hasDatepicker').removeAttr('id');
+        $tax_row.find(".wpbs-tax-datepicker-wrap").each(function () {
+            var $instance = $(this);
+            $instance.find(".wpbs-tax-datepicker").datepicker({
+                dateFormat: 'dd MM yy',
+                changeMonth: true,
+                changeYear: true,
+                showOtherMonths: true,
+                selectOtherMonths: true,
+                altFormat: 'd/m/yy',
+                altField: $instance.find('.wpbs-tax-datepicker-timestamp'),
+                beforeShow: function () {
+                    $('#ui-datepicker-div').addClass('wpbs-datepicker');
+                },
+                onClose: function () {
+                    $('#ui-datepicker-div').hide().removeClass('wpbs-datepicker');
+                }
+            }).keyup(function (e) {
+                if (e.keyCode == 8 || e.keyCode == 46) {
+                    $.datepicker._clearDate(this);
+                }
+            });;
+        });
+
+        if (typeof $.fn.chosen != 'undefined') {
+            $tax_row.find('.wpbs-settings-tax-calendars .chosen-container').remove();
+            $tax_row.find('.wpbs-settings-tax-calendars .wpbs-chosen').chosen();
+        }
+        $tax_row.appendTo($(".wpbs-tax-fields"));
+        wpbs_tax_fields_reset_names()
+    });
+
+    /**
+     * Remove Tax row in Settings
+     * 
+     */
+    $(document).on('click', ".wpbs-settings-tax-remove", function (e) {
+        e.preventDefault();
+
+        if (!confirm("Are you sure you want to delete this row?"))
+            return false;
+
+        $(this).parents('.wpbs-tax-field').remove();
+
+        wpbs_tax_fields_reset_names()
+
+    });
+
+    /**
+     * Assign a number to each tax field.
+     * 
+     */
+    function wpbs_tax_fields_reset_names() {
+        $(".wpbs-tax-field").each(function (i) {
+            var $field = $(this);
+            $field.find('[data-name]').each(function () {
+                $input = $(this);
+                var name = $input.data('name').replace('id', i);
+                $input.attr('name', name);
+            });
+        })
+    }
+
+    /**
+     * Tax Datepickers
+     * 
+     */
+    $(".wpbs-tax-datepicker-wrap").each(function () {
+        $instance = $(this);
+
+        $instance.find(".wpbs-tax-datepicker").datepicker({
+            dateFormat: 'dd MM yy',
+            changeMonth: true,
+            changeYear: true,
+            showOtherMonths: true,
+            selectOtherMonths: true,
+            altFormat: 'd/m/yy',
+            altField: $instance.find('.wpbs-tax-datepicker-timestamp'),
+            beforeShow: function () {
+                $('#ui-datepicker-div').addClass('wpbs-datepicker');
+            },
+            onClose: function () {
+                $('#ui-datepicker-div').hide().removeClass('wpbs-datepicker');
+            }
+        }).keyup(function (e) {
+            if (e.keyCode == 8 || e.keyCode == 46) {
+                $.datepicker._clearDate(this);
+            }
+        });
+    });
+
+    /**
+     * Tax Type Toggle
+     * 
+     */
+    $(".wpbs-tax-fields").on("change", ".wpbs-payment_tax_type", function () {
+        $parent = $(this).parents('.wpbs-tax-field');
+        $parent.find(".wpbs-tax-type").addClass('wpbs-hide');
+        $parent.find(".wpbs-tax-type-" + $(this).val()).removeClass('wpbs-hide');
+    }).trigger('change');
+
+    /**
+     * Add Email Template row in Settings
+     * 
+     */
+    $(document).on('click', ".wpbs-settings-email-template-add", function (e) {
+        e.preventDefault();
+        $('<input type="hidden" name="wpbs_settings[form_email_template_name][]" />').insertAfter($(this));
+        $(this).parents('form').submit();
+
+    });
+
+    /**
+     * Remove Email Template row in Settings
+     * 
+     */
+    $(document).on('click', ".wpbs-settings-email-template-remove", function (e) {
+        e.preventDefault();
+
+        if (!confirm("Are you sure you want to delete this row?"))
+            return false;
+
+        $(this).parents('.wpbs-email-template-field').remove();
+    });
+
+   
+
+    /**
+     * Final Payment Options fields
+     * 
+     */
+    $("#payment_part_payments_method").change(function () {
+        if ($(this).val() == 'initial') {
+            $("#wpbs-final-payment-options").show();
+        } else {
+            $("#wpbs-final-payment-options").hide();
+        }
+    }).trigger('change');
+
+    /**
+     * Change the coupon value icon
+     */
+    $("#payment_part_payments_amount_type").change(function () {
+        wpbs_change_deposit_options();
+    })
+    wpbs_change_deposit_options();
+
+    function wpbs_change_deposit_options() {
+        if ($("#payment_part_payments_amount_type").val() == 'percentage') {
+            $(".wpbs-part-payments-source").show();
+        } else {
+            $(".wpbs-part-payments-source").hide();
+        }
+        $(".wpbs-deposit-value-field-inner .wpbs-input-symbol").hide();
+        $(".wpbs-deposit-value-field-inner .wpbs-input-symbol.deposit-type-" + $("#payment_part_payments_amount_type").val()).show();
+    }
+
+    /**
+     * Select all text when clicking on it
+     */
+    function fallbackCopyTextToClipboard(text) {
+        var textArea = document.createElement("textarea");
+        textArea.value = text;
+
+        // Avoid scrolling to bottom
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+            var successful = document.execCommand('copy');
+            var msg = successful ? 'successful' : 'unsuccessful';
+        } catch (err) {
+        }
+
+        document.body.removeChild(textArea);
+    }
+    function copyTextToClipboard(text) {
+        if (!navigator.clipboard) {
+            fallbackCopyTextToClipboard(text);
+            return;
+        }
+        navigator.clipboard.writeText(text).then(function () {
+        }, function (err) {
+        });
+    }
+
+    var wpbs_copy_tooltip_timeout;
+    $(".wpbs-wrap").on('click', '.wpbs-email-tag div', function (e) {
+        e.preventDefault();
+        var $this = $(this);
+        var textToCopy = $this.text();
+
+        copyTextToClipboard(textToCopy);
+
+        $this.parents('.wpbs-email-tags').find('.wpbs-tooltip').removeClass('visible');
+        clearTimeout(wpbs_copy_tooltip_timeout);
+
+        $this.parent().find('.wpbs-tooltip').addClass('visible');
+        wpbs_copy_tooltip_timeout = setTimeout(function () {
+            $this.parent().find('.wpbs-tooltip').removeClass('visible');
+        }, 600);
+    });
+
+    $(".wpbs-wrap").on('click', '.wpbs-select-on-click', function (e) {
+        e.preventDefault();
+        var $this = $(this);
+        $this.parent().find('.wpbs-tooltip').remove();
+        var textToCopy = $this.text();
+        $this.append('<span class="wpbs-tooltip">Copied!</span>');
+
+        copyTextToClipboard(textToCopy);
+
+
+        clearTimeout(wpbs_copy_tooltip_timeout);
+
+        $this.find('.wpbs-tooltip').addClass('visible');
+        wpbs_copy_tooltip_timeout = setTimeout(function () {
+            $this.find('.wpbs-tooltip').removeClass('visible');
+        }, 600);
+    });
+
+    /**
+     * Calendar Notes - Add Note
+     * 
+     */
+    $("#wpbs-calendar-add-note").click(function (e) {
+        e.preventDefault();
+        $button = $(this);
+        $note = $button.parents('.wpbs-box').find('#wpbs-calendar-note-content')
+
+        $button.prop('disabled', true);
+        $note.prop('disabled', true);
+
+        // Prepare the data
+        var data = {
+            action: 'wpbs_calendar_add_note',
+            calendar_id: $('input[name="calendar_id"]').val(),
+            note: $note.val(),
+        }
+
+        // Send the request
+        $.post(ajaxurl, data, function (response) {
+
+            $button.prop('disabled', false);
+            $note.prop('disabled', false).val('');
+
+            if (response != '0') {
+                if (!$(".wpbs-calendar-note").length) {
+                    $(".wpbs-calendar-notes").prepend('<div class="wpbs-divider"></div>');
+                }
+                $(".wpbs-calendar-notes").prepend(response);
+
+                if (!$(".wpbs-calendar-notes-count").length) {
+                    $('.wpbs-edit-calendar-main-content .wpbs-nav-tab[data-tab="notes"]').append('<span class="wpbs-calendar-notes-count">1</span>');
+                } else {
+                    $(".wpbs-calendar-notes-count").text($(".wpbs-calendar-note").length)
+                }
+
+            }
+        });
+    })
+
+    /**
+     * Calendar Notes - Remove Note
+     * 
+     */
+    $(document).on('click', '.wpbs-calendar-note-remove', function (e) {
+        e.preventDefault();
+
+        if (!confirm("Are you sure you want to delete this note?"))
+            return false;
+
+        var $button = $(this);
+        var $wrap = $button.parents('.wpbs-calendar-note');
+
+        $wrap.css('opacity', 0.4);
+
+        // Prepare the data
+        var data = {
+            action: 'wpbs_calendar_remove_note',
+            calendar_id: $('input[name="calendar_id"]').val(),
+            note_id: $button.data('note-id'),
+        }
+
+        // Send the request
+        $.post(ajaxurl, data, function () {
+            $wrap.remove();
+            if (!$(".wpbs-calendar-note").length) {
+                $(".wpbs-calendar-notes").find('.wpbs-divider').remove();
+                $(".wpbs-calendar-notes-count").remove();
+            } else {
+                $(".wpbs-calendar-notes-count").text($(".wpbs-calendar-note").length)
+            }
+        });
+
+    });
+
+   
+
+    /**
+     * Dashboard
+     * 
+     */
+
+    // Enable toggles for the dashboard cards postboxes.
+    if (typeof postboxes !== 'undefined' && pagenow == 'wp-booking-system_page_wpbs-dashboard') {
+        postboxes.add_postbox_toggles(pagenow);
+    }
+
+    /**
+     * Dismiss event
+     * 
+     */
+    $(document).on('click', '.wpbs-event-dismiss', function (e) {
+        e.preventDefault();
+
+        var $tr = $(this).parents('tr');
+        var $table = $tr.parents('.wpbs-card-table-full-width');
+
+        var data = {
+            action: 'wpbs_dismiss_notification',
+            token: $('#wpbs_token').val(),
+            notification_id: $(this).data('id')
+        }
+        $.post(ajaxurl, data);
+
+        $tr.height(42).animate({ opacity: 0 }, 200, function () {
+            $tr.find('td').remove();
+            $tr.animate({ height: 0 }, 200, function () {
+                $tr.remove();
+
+                if ($table.parents('#wpbs-card-notifications').length) {
+                    $(".wpbs-notifications-count-circle").each(function () {
+                        var count = parseInt($(this).text()) - 1;
+                        $(this).text(count);
+                        if (count == 0) {
+                            $(".wpbs-notifications-removable-count").each(function () {
+                                if ($(this).text() == '0') {
+                                    $(this).remove();
+                                }
+                                if ($(this).find('.wpbs-notifications-count-circle').text() == '0') {
+                                    $(this).remove();
+                                }
+                            })
+                        }
+                    });
+                }
+
+                wpbs_check_if_dashboard_table_is_empty($table);
+            })
+        });
+
+    })
+
+    /**
+     * Dismiss all events
+     * 
+     */
+    $(document).on('click', '.wpbs-event-dismiss-all', function (e) {
+        e.preventDefault();
+
+        if (!confirm('Are you sure you want to dismiss all events?')) {
+            return;
+        }
+
+        var data = {
+            action: 'wpbs_dismiss_all_notifications',
+            token: $('#wpbs_token').val(),
+            group: $(this).data('group')
+        }
+        $.post(ajaxurl, data);
+
+        $table = $(this).siblings('.wpbs-card-table-full-width');
+
+        $(this).animate({ opacity: 0 }, 200);
+        $table.find('tr').animate({ opacity: 0 }, 200, function () {
+            $table.find('tr').remove();
+            wpbs_check_if_dashboard_table_is_empty($table);
+        });
+
+
+
+    });
+
+    /**
+     * Check if the events tables are empty and display a message
+     * 
+     */
+    function wpbs_check_if_dashboard_table_is_empty($element) {
+        if (!$element.find('tbody tr').length) {
+            $element.siblings('.wpbs-event-dismiss-all').remove();
+            $element.siblings('.wpbs-dashboard-no-entries').removeClass('wpbs-hide');
+            $element.remove();
+        }
+    }
+
+    /**
+     * Check if the events tables are empty and display a message
+     * 
+     */
+    if ($(".wpbs-box-footer input").length) {
+        $(".wpbs-custom-save-button").text($(".wpbs-box-footer input").val());
+
+        $("body").on('click', '.wpbs-custom-save-button', function (e) {
+            e.preventDefault();
+            $(".wpbs-box-footer input").click();
+        });
+    };
+
+    /**
+     * Tables
+     * 
+     */
+    if ($(".wpbs-box-table-wrapper .wpbs-table-wrap").length) {
+        $(".wpbs-box-table-wrapper .wpbs-table-wrap").each(function () {
+            var $table = $(this);
+
+            // Function to check and handle scrollbar presence
+            function handleScrollbar() {
+                if ($table.outerWidth() < $table.get(0).scrollWidth) {
+                    if (!$table.parent().hasClass('wpbs-has-scrollbar')) {
+                        $table.wrap('<div class="wpbs-has-scrollbar">');
+                    }
+                } else {
+                    if ($table.parent().hasClass('wpbs-has-scrollbar')) {
+                        $table.unwrap('.wpbs-has-scrollbar');
+                    }
+                }
+            }
+
+            // Call handleScrollbar on document ready
+            handleScrollbar();
+
+            $(window).on('resize', handleScrollbar);
+
+
+            // Check if scrolled to the end
+            $table.on('scroll touchmove touchend', function () {
+                var scrollLeft = $table.scrollLeft();
+                var scrollWidth = this.scrollWidth;
+                var clientWidth = $table.innerWidth();
+
+                if (scrollLeft + clientWidth >= scrollWidth - 1) {
+                    $table.parent().addClass('wpbs-scrolled-to-end');
+                } else {
+                    $table.parent().removeClass('wpbs-scrolled-to-end');
+                }
+            });
+        });
+    };
+
+    if ($("#wpbs-calendar-events").length) {
+        $("#wpbs-calendar-events").each(function () {
+            var $table = $(this);
+
+            // Check if scrolled to the end
+            $table.on('scroll touchmove touchend', function () {
+                var scrollLeft = $table.scrollLeft();
+                var scrollWidth = this.scrollWidth;
+                var clientWidth = $table.innerWidth();
+
+                if (scrollLeft + clientWidth >= scrollWidth - 1) {
+                    $table.parents('.wpbs-tab-edit-dates').addClass('wpbs-scrolled-to-end');
+                } else {
+                    $table.parents('.wpbs-tab-edit-dates').removeClass('wpbs-scrolled-to-end');
+                }
+            });
+        });
+    };
+
+
+    // Mobile Menu
+    $("body").on('click', '.js-wpbs-mobile-main-menu-button', function (e) {
+        e.preventDefault();
+        $this = $(this);
+        if ($this.hasClass('active')) {
+            $this.removeClass('active');
+            $("body").removeClass('wpbs-mobile-menu-visible');
+        } else {
+            $this.addClass('active');
+            $("body").addClass('wpbs-mobile-menu-visible');
+        };
+    });
+
+
+    // Mobile Level 2 Menu
+    wpbs_tabs_navigation_decoration_level2 = function () {
+        $(".wpbs-tabs-nav").each(function () {
+            var $menuLevel2 = $(this);
+
+
+            // Function to check and handle scrollbar presence
+            function handleScrollbar() {
+                if (Math.ceil($menuLevel2.outerWidth(true)) < $menuLevel2.find('ul').get(0).scrollWidth) {
+                    $menuLevel2.addClass('wpbs-has-scrollbar');
+                } else {
+                    $menuLevel2.removeClass('wpbs-has-scrollbar');
+                };
+            };
+
+            // Call handleScrollbar on document ready
+            handleScrollbar();
+
+            $(window).on('resize', handleScrollbar);
+
+            // Check if scrolled to the end
+            var $menuLevel2Inner = $menuLevel2.find('.wpbs-tabs-menu');
+            $menuLevel2Inner.on('scroll touchmove touchend', function () {
+                var scrollLeft = $menuLevel2Inner.scrollLeft();
+                var scrollWidth = this.scrollWidth;
+                var clientWidth = $menuLevel2Inner.innerWidth();
+
+                if (scrollLeft + clientWidth >= scrollWidth - 1) {
+                    $menuLevel2.addClass('wpbs-scrolled-to-end');
+                } else {
+                    $menuLevel2.removeClass('wpbs-scrolled-to-end');
+                }
+            });
+        });
+    };
+    wpbs_tabs_navigation_decoration_level2();
+
+    // Mobile Level 3 Menu
+    if ($(".wpbs-sub-tab-navigation").length) {
+        wpbs_tabs_navigation_decoration_level3();
+    };
+
+    $(document).on('wpbs_nav_menu_decoration_level_2', function () {
+        wpbs_tabs_navigation_decoration_level2();
+    });
+
+    $(document).on('wpbs_nav_menu_decoration_level_3', function () {
+        wpbs_tabs_navigation_decoration_level3();
+    });
+
+    function wpbs_tabs_navigation_decoration_level3() {
+        $(".wpbs-sub-tab-navigation").each(function () {
+            var $menuLevel3 = $(this);
+
+            // Function to check and handle scrollbar presence
+            function handleScrollbar() {
+                if (Math.ceil($menuLevel3.outerWidth()) < $menuLevel3.get(0).scrollWidth) {
+                    if (!$menuLevel3.parent().hasClass('wpbs-has-scrollbar')) {
+                        $menuLevel3.wrap('<div class="wpbs-has-scrollbar mobile-level-3-menu">');
+                    }
+                } else {
+                    if ($menuLevel3.parent().hasClass('wpbs-has-scrollbar')) {
+                        $menuLevel3.unwrap('.wpbs-has-scrollbar');
+                    }
+                }
+            }
+
+            // Call handleScrollbar on document ready
+            handleScrollbar();
+
+            $(window).on('resize', handleScrollbar);
+
+            // Check if scrolled to the end
+            $menuLevel3.on('scroll touchmove touchend', function () {
+                var scrollLeft = $menuLevel3.scrollLeft();
+                var scrollWidth = this.scrollWidth;
+                var clientWidth = $menuLevel3.innerWidth();
+
+                if (scrollLeft + clientWidth >= scrollWidth - 1) {
+                    $menuLevel3.parent().addClass('wpbs-scrolled-to-end');
+                } else {
+                    $menuLevel3.parent().removeClass('wpbs-scrolled-to-end');
+                }
+            });
+        });
+    };
+
+
+    // Dashboard Boxes
+    if ($("#dashboard-widgets .postbox").length) {
+        $("#dashboard-widgets .postbox").each(function () {
+            var $postbox = $(this).find('.inside');
+
+            // Function to check and handle scrollbar presence
+            function handleScrollbar() {
+                if (Math.ceil($postbox.outerWidth()) < $postbox.parent().get(0).scrollWidth) {
+                    if (!$postbox.parent().hasClass('wpbs-has-scrollbar')) {
+                        $postbox.wrap('<div class="wpbs-has-scrollbar">');
+                    }
+                } else {
+                    if ($postbox.parent().hasClass('wpbs-has-scrollbar')) {
+                        $postbox.unwrap('.wpbs-has-scrollbar');
+                    }
+                }
+            }
+
+            // Call handleScrollbar on document ready
+            handleScrollbar();
+
+            $(window).on('resize', handleScrollbar);
+
+            // Check if scrolled to the end
+            $postbox.on('scroll touchmove touchend', function () {
+                var scrollLeft = $postbox.scrollLeft();
+                var scrollWidth = this.scrollWidth;
+                var clientWidth = $postbox.innerWidth();
+
+                if (scrollLeft + clientWidth >= scrollWidth - 1) {
+                    $postbox.parent().addClass('wpbs-scrolled-to-end');
+                } else {
+                    $postbox.parent().removeClass('wpbs-scrolled-to-end');
+                }
+            });
+        });
+    };
+
+
+
+    /**
+    * Mobile Fixes
+    */
+    if ($(".wpbs-edit-calendar-sidebar").length) {
+        if ($(window).width() <= 991) {
+            $(".wpbs-edit-calendar-sidebar .wpbs-calendars-wrapper").parents('.wpbs-box').insertBefore($(".wpbs-edit-calendar-main-content > .wpbs-box"));
+        } else {
+            $(".wpbs-edit-calendar-main-content .wpbs-calendars-wrapper").parents('.wpbs-box').insertBefore($("#wpbs-bulk-edit-availability-wrapper.wpbs-box"));
+        };
+
+        $(window).on('resize', function () {
+            if ($(window).width() <= 991) {
+                $(".wpbs-edit-calendar-sidebar .wpbs-calendars-wrapper").parents('.wpbs-box').insertBefore($(".wpbs-edit-calendar-main-content > .wpbs-box"));
+            } else {
+                $(".wpbs-edit-calendar-main-content .wpbs-calendars-wrapper").parents('.wpbs-box').insertBefore($("#wpbs-bulk-edit-availability-wrapper.wpbs-box"));
+            };
+
+            $(".wpbs-calendar-wrapper").css('min-height', '1px');
+        });
+    };
+
+
+    /**
+    * Email Notifications Status Toggle
+    */
+    $('.wpbs-email-status-toggle input[type="checkbox"]').change(function (e) {
+        e.preventDefault();
+        $button = $(this);
+
+        $button.parents('tr').removeClass();
+        $button.parents('tr').addClass(($(this).prop('checked') ? 'wpbs-table-row-active' : 'wpbs-table-row-inactive'));
+
+        wpbs_form_submitting = true;
+
+        // Prepare the data
+        var data = {
+            action: 'wpbs_email_status_toggle',
+            email_id: $(this).data('email-id'),
+            value: $(this).prop('checked'),
+        }
+
+        // Send the request
+        $.post(ajaxurl, data);
+    });
+
+    $('.wpbs-email-status-toggle input[type="checkbox"]').each(function () {
+        $button = $(this);
+        $button.parents('tr').addClass(($(this).prop('checked') ? 'wpbs-table-row-active' : 'wpbs-table-row-inactive'));
+    });
+
+    $('body').on('change', '#copy_prices_source_calendar, #copy_prices_destination_calendar', function () {
+        var $button = $("#wpbs-copy-prices-submit-button");
+        var url = $button.attr('href');
+
+        var url = new URL(url);
+
+        url.searchParams.delete('source_calendar');
+        url.searchParams.delete('destination_calendar');
+
+        url.searchParams.append('source_calendar', $('#copy_prices_source_calendar').val());
+        url.searchParams.append('destination_calendar', $('#copy_prices_destination_calendar').val());
+
+        $button.attr('href', url);
+
+        if ($('#copy_prices_source_calendar').val() && $('#copy_prices_destination_calendar').val()) {
+            $("#wpbs-copy-prices-submit-button").removeClass('disabled');
+        } else {
+            $("#wpbs-copy-prices-submit-button").addClass('disabled');
+        }
+
+    });
+
+    $('body').on('change', '#copy_prices_increase, #copy_prices_destination_year, #copy_prices_source_year, #copy_prices_calendar', function () {
+        var $button = $("#wpbs-copy-year-prices-submit-button");
+        var url = $button.attr('href');
+
+        var url = new URL(url);
+
+        url.searchParams.delete('calendar');
+        url.searchParams.delete('source_year');
+        url.searchParams.delete('destination_year');
+        url.searchParams.delete('price_increase');
+
+        url.searchParams.append('calendar', $('#copy_prices_calendar').val());
+        url.searchParams.append('source_year', $('#copy_prices_source_year').val());
+        url.searchParams.append('destination_year', $('#copy_prices_destination_year').val());
+        url.searchParams.append('price_increase', $('#copy_prices_increase').val());
+
+        $button.attr('href', url);
+
+        if ($('#copy_prices_calendar').val() && $('#copy_prices_destination_year').val() && $('#copy_prices_source_year').val()) {
+            $("#wpbs-copy-year-prices-submit-button").removeClass('disabled');
+        } else {
+            $("#wpbs-copy-year-prices-submit-button").addClass('disabled');
+        }
+
+    });
+
 });
 
 function wpbs_calendar_editor_dynamic_layout() {
 
     jQuery(".wpbs-wrap-edit-calendar .wpbs-calendar-date-booking-ids, .wpbs-wrap-edit-calendar .wpbs-calendar-date-booking-ids-header").css('min-width', 0);
 
-    wpbs_bookings_max_width = 0;
-    jQuery(".wpbs-wrap-edit-calendar .wpbs-calendar-date-booking-ids").each(function () {
-        if (jQuery(this).width() > wpbs_bookings_max_width) {
-            wpbs_bookings_max_width = jQuery(this).width();
-        }
-    })
+    var wpbs_bookings_max_width = 0;
+    if (jQuery(window).width() > 767) {
+        jQuery(".wpbs-wrap-edit-calendar .wpbs-calendar-date-booking-ids").each(function () {
+            if (jQuery(this).width() > wpbs_bookings_max_width) {
+                wpbs_bookings_max_width = jQuery(this).width();
+            }
+        })
+    }
+    else {
+        wpbs_bookings_max_width = 0;
+    }
 
     jQuery(".wpbs-wrap-edit-calendar .wpbs-calendar-date-booking-ids, .wpbs-wrap-edit-calendar .wpbs-calendar-date-booking-ids-header").css('min-width', wpbs_bookings_max_width + 1);
-
-
-    jQuery(".wpbs-wrap-edit-calendar .wpbs-calendar-date-description, .wpbs-wrap-edit-calendar .wpbs-calendar-date-description-header").css('width', (jQuery(".wpbs-calendar-editor").width() - (187 + wpbs_bookings_max_width + 7 + 7 + 1)));
-
-   
 
     jQuery(".wpbs-calendar-editor").css({ opacity: 1 });
 };
 
-jQuery(document).ready(function () {
-    // Hide booking IDs on mobile if empty
-    jQuery(".wpbs-calendar-date-booking-id").each(function () {
-        $this = $(this);
-        if ($this.text() == '\xa0') {
-            $this.parent().addClass('hide');
-        };
-    });
-});
+function wpbs_nl2br(str, is_xhtml) {
+    if (typeof str === 'undefined' || str === null) {
+        return '';
+    }
+    var breakTag = (is_xhtml || typeof is_xhtml === 'undefined') ? '<br />' : '<br>';
+    return (str + '').replace(/([^>\r\n]?)(\r\n|\n\r|\r|\n)/g, '$1' + breakTag + '$2');
+}
 
-jQuery(window).on('load resize', function(){
-    jQuery(".wpbs-wrap-upgrade-to-premium ul li").wpbs_adjust_height();
-})
-
-function wpbs_escape_attr(string){
+function wpbs_escape_attr(string) {
     string = string.replace(/>/g, '&gt;');
     string = string.replace(/</g, '&lt;');
     string = string.replace(/"/g, '&quot;');
     return string;
 }
-
-/***** Adjust Height Function *****/
-jQuery.fn.wpbs_adjust_height = function () {
-    var maxHeightFound = 0;
-    this.css('min-height', '1px');
-
-    if (this.is('a')) {
-        this.removeClass('loaded');
-    };
-
-    this.each(function () {
-        if (jQuery(this).outerHeight() > maxHeightFound) {
-            maxHeightFound = jQuery(this).outerHeight();
-        }
-    });
-    this.css('min-height', maxHeightFound);
-    if (this.is('a')) {
-        this.addClass('loaded');
-    };
-};

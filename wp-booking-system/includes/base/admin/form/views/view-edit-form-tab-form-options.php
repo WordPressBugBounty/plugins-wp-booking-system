@@ -1,29 +1,48 @@
-<!-- Submit Button -->
-<div class="wpbs-settings-field-translation-wrapper">
-    <div class="wpbs-settings-field-wrapper wpbs-settings-field-inline wpbs-settings-field-large">
-        <label class="wpbs-settings-field-label" for="submit_button_label"><?php echo __( 'Submit Button Label', 'wp-booking-system' ); ?></label>
+<?php $current_tab = 'form-options'; ?>
+<?php $sub_tabs = $this->get_sub_tabs($current_tab); ?>
+<?php $active_section = ( ! empty( $_GET['section'] ) && array_key_exists($_GET['section'], $sub_tabs) ? sanitize_text_field( $_GET['section'] ) : key($sub_tabs) ); ?>
 
-        <div class="wpbs-settings-field-inner">
-            <input name="submit_button_label" type="text" id="submit_button_label" value="<?php echo ( !empty($form_meta['submit_button_label'][0]) ) ? esc_attr($form_meta['submit_button_label'][0]) : '';?>" class="regular-text" >
-            <?php if(wpbs_translations_active()): ?><a href="#" class="wpbs-settings-field-show-translations"><?php echo __( 'Translations', 'wp-booking-system' ); ?> <i class="wpbs-icon-down-arrow"></i></a><?php endif; ?>
+<ul class="wpbs-sub-tab-navigation">
+    <?php 
+        $i = 0; foreach( $sub_tabs as $tab_slug => $tab_name ) {
 
-        </div>
-    </div>
-    <?php if(wpbs_translations_active()): ?>
-    <div class="wpbs-settings-field-translations">
-        <?php foreach($active_languages as $language): ?>
-            <!-- Submit Button -->
-            <div class="wpbs-settings-field-wrapper wpbs-settings-field-inline wpbs-settings-field-large">
+            echo '<li><a href="' . add_query_arg( array( 'page' => 'wpbs-forms', 'subpage' => 'edit-form', 'form_id' => absint($_GET['form_id']), 'tab' => $current_tab, 'section' => $tab_slug), admin_url('admin.php') ) . '" data-tab="' . $tab_slug . '" '. ($active_section == $tab_slug  ? ' class="current"' : '').'>' . $tab_name . '</a></li>';
+        $i++;
+        }
+    ?>
+</ul>
 
-                <label class="wpbs-settings-field-label" for="submit_button_label_translation_<?php echo $language;?>"><img src="<?php echo WPBS_PLUGIN_DIR_URL ;?>/assets/img/flags/<?php echo $language;?>.png" /> <?php echo $languages[$language];?></label>
+<div class="wpbs-clear"><!-- --></div>
 
-                <div class="wpbs-settings-field-inner">
-                    <input name="submit_button_label_translation_<?php echo $language;?>" type="text" id="submit_button_label_translation_<?php echo $language;?>" value="<?php echo ( !empty($form_meta['submit_button_label_translation_' . $language][0]) ) ? esc_attr($form_meta['submit_button_label_translation_' . $language][0]) : '';?>" class="regular-text" >
-                </div>
-                
-            </div>
-        <?php endforeach; ?>
-    </div>
-    <?php endif ?>
+<div class="wpbs-sub-tabs">
+
+    <?php foreach( $sub_tabs as $tab_slug => $tab_name ) {
+
+		echo '<div class="wpbs-tab wpbs-tab-' . $tab_slug . ( $active_section == $tab_slug ? ' wpbs-section-active' : '' ) . ' " data-tab="' . $tab_slug . '">';
+
+		// Handle general tab
+		if( $tab_slug == 'general-options' ) {
+
+			include 'view-edit-form-tab-general-options.php';
+		
+		// Handle general tab
+		} else if( $tab_slug == 'form-confirmation' ) {
+
+			include 'view-edit-form-tab-form-confirmation.php';
+
+		// Handle dynamic tabs
+		} else {
+
+			/**
+			 * Action to dynamically add content for each tab
+			 *
+			 */
+			do_action( 'wpbs_submenu_page_edit_form_tabs_form_options_' . $tab_slug );
+		}
+		echo '</div>';
+	}
+
+	?>
+		
+
 </div>
-

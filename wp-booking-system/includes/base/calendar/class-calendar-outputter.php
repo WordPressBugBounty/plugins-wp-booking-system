@@ -1,9 +1,10 @@
 <?php
 
 // Exit if accessed directly
-if ( ! defined( 'ABSPATH' ) ) exit;
+if (!defined('ABSPATH')) exit;
 
-class WPBS_Calendar_Outputter {
+class WPBS_Calendar_Outputter
+{
 
 	/**
 	 * The arguments for the calendar outputter
@@ -22,6 +23,15 @@ class WPBS_Calendar_Outputter {
 	 *
 	 */
 	protected $calendar = null;
+
+	/**
+	 * Additional calendar data
+	 *
+	 * @access protected
+	 * @var    array
+	 *
+	 */
+	protected $data;
 
 	/**
 	 * The list of legend items associated with the calendar
@@ -59,14 +69,6 @@ class WPBS_Calendar_Outputter {
 	 */
 	protected $events = array();
 
-	/**
-	 * The list of events from the linked iCal feeds
-	 *
-	 * @access protected
-	 * @var    array
-	 *
-	 */
-	protected $ical_events = array();
 
 	/**
 	 * The plugin general settings
@@ -95,61 +97,67 @@ class WPBS_Calendar_Outputter {
 	 * @param array 		 $args
 	 *
 	 */
-	public function __construct( $calendar, $args = array() ) {
+	public function __construct($calendar, $args = array(), $data = array())
+	{
 
 		/**
 		 * Set arguments
 		 *
 		 */
-		$this->args = wp_parse_args( $args, wpbs_get_calendar_output_default_args() );
+		$this->args = apply_filters('wpbs_calendar_outputter_args', wp_parse_args($args, wpbs_get_calendar_output_default_args()));
 
 		/**
 		 * Set the calendar
 		 *
 		 */
 		$this->calendar = $calendar;
-		
-		/**
-		 * Set the calendar legend items
-		 *
-		 */
-		$this->legend_items = wpbs_get_legend_items( array( 'calendar_id' => $calendar->get('id') ) );
-
-		/**
-		 * Set the default legend item
-		 *
-		 */
-		foreach( $this->legend_items as $legend_item ) {
-
-			if( $legend_item->get('is_default') == 1 )
-				$this->default_legend_item = $legend_item;
-
-		}
-		
-		/**
-		 * Set the calendar events
-		 *
-		 */
-		$this->events = wpbs_get_events( array( 'calendar_id' => $calendar->get('id') ) );
-
 
 		/**
 		 * Set plugin settings
 		 *
 		 */
-		$this->plugin_settings = get_option( 'wpbs_settings', array() );
+		$this->plugin_settings = get_option('wpbs_settings', array());
+
+
 
 		/**
-		 * Refresh the iCal feeds
+		 * Hook some stuff in here if needed
+		 * 
+		 */
+		do_action('wpbs_calendar_outputter', $calendar, $args);
+
+		/**
+		 * Set the calendar legend items
 		 *
 		 */
-		$this->refresh_ical_feeds();
+		$this->legend_items = wpbs_get_legend_items(array('calendar_id' => $calendar->get('id')));
+
+		/**
+		 * Set the default legend item
+		 *
+		 */
+		foreach ($this->legend_items as $legend_item) {
+
+			if ($legend_item->get('is_default'))
+				$this->default_legend_item = $legend_item;
+		}
+
+		/**
+		 * Set the calendar events
+		 *
+		 */
+		$this->events = wpbs_get_events(array('calendar_id' => $calendar->get('id')));
+
+		/**
+		 * Set the calendar data
+		 *
+		 */
+		$this->data = $data;
 
 		/**
 		 * Set the default price
 		 */
 		$this->default_price = wpbs_get_calendar_meta($this->calendar->get('id'), 'default_price', true);
-
 	}
 
 
@@ -159,61 +167,74 @@ class WPBS_Calendar_Outputter {
 	 * @return string
 	 *
 	 */
-	public function get_display() {
+	public function get_display()
+	{
 
 		/**
 		 * Return nothing if calendar is in Trash
 		 *
 		 */
-		if( $this->calendar->get('status') == 'trash' )
+		if ($this->calendar->get('status') == 'trash')
 			return '';
 
 		/**
 		 * Prepare needed data
 		 *
 		 */
+
+		// Get first available date
+
+		if (isset($this->args['show_first_available_date']) && $this->args['show_first_available_date'] == 1 && !isset($_GET['wpbs-start-month']) && !isset($_GET['wpbs-start-year'])) {
+			$first_available_month = $this->get_first_available_month();
+
+			$this->args['current_year'] = $first_available_month['current_year'];
+			$this->args['current_month'] = $first_available_month['current_month'];
+			$this->args['show_first_available_date'] = 0;
+		}
+
 		$year_to_show  = (int)$this->args['current_year'];
 		$month_to_show = (int)$this->args['current_month'];
 
-		$calendar_html_data = 'data-id="' . $this->calendar->get('id') . '" ';
-		
-		foreach($this->get_auto_pending_legend_changeover_ids() as $auto_pending_legend_item){
-			$calendar_html_data .= 'data-' . $auto_pending_legend_item->get('auto_pending') . '="'.$auto_pending_legend_item->get('id').'" ';
+		foreach ($this->get_auto_pending_legend_changeover_ids() as $auto_pending_legend_item) {
+			$this->args[$auto_pending_legend_item->get('auto_pending')] = $auto_pending_legend_item->get('id');
 		}
 
-		foreach( $this->args as $arg => $val )
-			$calendar_html_data .= 'data-' . $arg . '="' . esc_attr( $val ) . '" ';
+		$calendar_html_data = 'data-id="' . $this->calendar->get('id') . '" ';
+
+		foreach ($this->args as $arg => $val) {
+			if ($this->args['show_prices'] && $arg == 'min_width') {
+				$val = 320;
+			}
+			$calendar_html_data .= 'data-' . $arg . '="' . esc_attr($val) . '" ';
+		}
 
 		/**
 		 * Handle output for existing calendar
 		 *
 		 */
-		$output = '<div class="wpbs-container wpbs-enable-hover wpbs-calendar-' . (int)$this->calendar->get('id') . '" ' . $calendar_html_data . '>';
+		$custom_calendar_classes = apply_filters('wpbs_calendar_outputter_custom_class', '');
+		$output = '<div class="wpbs-container wpbs-enable-hover wpbs-calendar-' . (int)$this->calendar->get('id') . ' ' . $custom_calendar_classes . '" ' . $calendar_html_data . '>';
 
 		/**
 		 * Calendar title
 		 *
 		 */
-		if( $this->args['show_title'] ) {
+		if ($this->args['show_title']) {
 
-			$calendar_title_wrapper_el = apply_filters( 'wpbs_calendar_output_title_wrapper_element', 'h2', $this->calendar->get('id') );
-			if (wpbs_get_calendar_meta($this->calendar->get('id'), 'calendar_name_translation_' . $this->args['language'], true)) {
-				$calendar_name = wpbs_get_calendar_meta($this->calendar->get('id'), 'calendar_name_translation_' . $this->args['language'], true);
-			} else {
-				$calendar_name = $this->calendar->get('name');
-			}
+			$calendar_title_wrapper_el = apply_filters('wpbs_calendar_output_title_wrapper_element', 'h2', $this->calendar->get('id'));
+
+			$calendar_name = $this->calendar->get_name($this->args['language']);
 
 			$output .= '<' . $calendar_title_wrapper_el . '>' . $calendar_name . '</' . $calendar_title_wrapper_el . '>';
-
 		}
 
-		$output .= '<div class="wpbs-calendars-wrapper ' . ( $this->args['show_legend'] ? 'wpbs-legend-position-side' : '' ) . '">';
+		$output .= '<div class="wpbs-calendars-wrapper ' . ($this->args['show_legend'] ? 'wpbs-legend-position-' . esc_attr($this->args['legend_position']) : '') . '">';
 
 		/**
 		 * Calendar Legend Top
 		 *
 		 */
-		if( $this->args['show_legend'])
+		if ($this->args['show_legend'] && $this->args['legend_position'] != 'bottom')
 			$output .= $this->get_display_legend();
 
 		/**
@@ -223,18 +244,17 @@ class WPBS_Calendar_Outputter {
 		 */
 		$output .= '<div class="wpbs-calendars">';
 
-		for( $i = 1; $i <= (int)1; $i++ ) {
+		for ($i = 1; $i <= (int)$this->args['months_to_show']; $i++) {
 
 			// Set the months iterator
 			$this->_months_iterator = $i;
 
 			// Get the month
-			$output .= $this->get_display_month( $year_to_show, $month_to_show );
+			$output .= $this->get_display_month($year_to_show, $month_to_show);
 
 			// Increment month and year (if needed)
-			$year_to_show  = ( $month_to_show + 1 > 12 ? ( $year_to_show + 1 )       : $year_to_show );
-			$month_to_show = ( $month_to_show + 1 > 12 ? ( $month_to_show + 1 - 12 ) : ( $month_to_show + 1 ) );
-
+			$year_to_show  = ($month_to_show + 1 > 12 ? ($year_to_show + 1)       : $year_to_show);
+			$month_to_show = ($month_to_show + 1 > 12 ? ($month_to_show + 1 - 12) : ($month_to_show + 1));
 		}
 
 		$output .= '</div>'; // end of .wpbs-calendars
@@ -243,7 +263,8 @@ class WPBS_Calendar_Outputter {
 		 * Calendar Legend Bottom
 		 *
 		 */
-		
+		if ($this->args['show_legend'] && $this->args['legend_position'] == 'bottom')
+			$output .= $this->get_display_legend();
 
 		$output .= '</div>'; // end of .wpbs-calendars-wrapper
 
@@ -263,7 +284,6 @@ class WPBS_Calendar_Outputter {
 		$output .= '</div>'; // end of .wpbs-container
 
 		return $output;
-
 	}
 
 
@@ -276,21 +296,22 @@ class WPBS_Calendar_Outputter {
 	 * @return string
 	 *
 	 */
-	protected function get_display_month( $year, $month ) {
+	protected function get_display_month($year, $month)
+	{
 
-		$day_names 	   = wpbs_get_days_first_letters( $this->args['language'] );
-		$start_weekday = 0;
-		$first_day 	   = getdate( mktime( 0, 0, 0, $month, 1, $year ) );
-		$total_days    = date( 't', mktime( 0, 0, 0, $month, 1, $year ) );
+		$day_names 	   = wpbs_get_days_first_letters($this->args['language']);
+		$start_weekday = (int)$this->args['start_weekday'] - 1;
+		$first_day 	   = getdate(mktime(0, 0, 0, $month, 1, $year));
+		$total_days    = date('t', mktime(0, 0, 0, $month, 1, $year));
 
-		$output  = '<div class="wpbs-calendar">';
+		$output  = '<div class="wpbs-calendar wpbs-calendar-month-' . $month . ' wpbs-calendar-year-' . $year . ' ' . (!isset($this->args['is_admin']) && $this->args['show_prices'] ? 'wpbs-has-prices' : '') . '">';
 
 		/**
 		 * Month header
 		 *
 		 */
-		$output .= $this->get_display_month_header( $year, $month );
-		
+		$output .= $this->get_display_month_header($year, $month);
+
 
 		/**
 		 * Table with the actual calendar
@@ -306,17 +327,21 @@ class WPBS_Calendar_Outputter {
 		 *
 		 */
 		$output .= '<thead>';
-			$output .= '<tr>';
+		$output .= '<tr>';
 
-				// The name of each day
-				for( $i = $start_weekday; $i < ( $start_weekday + 7 ); $i++ ) {
-					
-					$index = ( $i > 6 ? $i - 7 : $i );
+		// Week number
+		if ($this->args['show_week_numbers'])
+			$output .= '<th></th>';
 
-					$output .= '<th>' . $day_names[$index] . '</th>';
-				}
+		// The name of each day
+		for ($i = $start_weekday; $i < ($start_weekday + 7); $i++) {
 
-			$output .= '</tr>';
+			$index = ($i > 6 ? $i - 7 : $i);
+
+			$output .= '<th>' . $day_names[$index] . '</th>';
+		}
+
+		$output .= '</tr>';
 		$output .= '</thead>';
 
 		/**
@@ -327,45 +352,55 @@ class WPBS_Calendar_Outputter {
 		 */
 		$output .= '<tbody>';
 
-			// The days array
-			$days = array();
+		// The days array
+		$days = array();
 
-			// The empty days at the begining of the calendar
-			$offset = $first_day['wday'] - $start_weekday;
+		// The empty days at the begining of the calendar
+		$offset = $first_day['wday'] - $start_weekday;
 
-			if( $offset < 1 )
-				$offset += 7;
+		if ($offset < 1)
+			$offset += 7;
 
-			// Add first empty days
-			for( $i = 1; $i < $offset; $i++ )
-				$days[$i] = 0;
+		// Add first empty days
+		for ($i = 1; $i < $offset; $i++)
+			$days[$i] = 0;
 
-			for( $j = $i; $j < $total_days + $i; $j++ )
-				$days[$j] = $j - $i + 1;
+		for ($j = $i; $j < $total_days + $i; $j++)
+			$days[$j] = $j - $i + 1;
 
-			// Add remaining empty days
-			for( $i = 1; $i <= 7; $i++ ) {
+		// Add remaining empty days
+		for ($i = 1; $i <= 7; $i++) {
 
-				if( count( $days ) % 7 == 0 )
-					break;
+			if (count($days) % 7 == 0)
+				break;
 
-				$days[] = 0;
+			$days[] = 0;
+		}
 
+		$output .= '<tr>';
+
+		$days = apply_filters('wpbs_calendar_output_display_month_days', $days);
+
+		foreach ($days as $key => $day) {
+
+			// Week number
+			if ($this->args['show_week_numbers'] && $key % 7 == 1) {
+
+				$week_number = date('W', mktime(0, 0, 0, $month, ($start_weekday == 6 ? $day + 1 : $day - $start_weekday), $year));
+
+				$output .= '<td><div class="wpbs-week-number">' . $week_number . '</div></td>';
 			}
 
-			$output .= '<tr>';
+			// Get the output for the current day
+			$output .= '<td>' . $this->get_display_day($year, $month, $day) . '</td>';
 
-			foreach( $days as $key => $day ) {
+			if ($key % 7 == 0 && $key != count($days))
+				$output .= '</tr><tr>';
+		}
 
-				// Get the output for the current day
-				$output .= '<td>' . $this->get_display_day( $year, $month, $day ) . '</td>';
 
-				if( $key % 7 == 0 && $key != count($days) )
-					$output .= '</tr><tr>';
 
-			}
-
-			$output .= '</tr>';
+		$output .= '</tr>';
 
 		$output .= '</tbody>';
 
@@ -374,7 +409,6 @@ class WPBS_Calendar_Outputter {
 		$output .= '</div>'; // end of .wpbs-calendar
 
 		return $output;
-
 	}
 
 
@@ -387,37 +421,36 @@ class WPBS_Calendar_Outputter {
 	 * @return string
 	 *
 	 */
-	protected function get_display_month_header( $year, $month ) {
+	protected function get_display_month_header($year, $month)
+	{
 
 		$output  = '<div class="wpbs-calendar-header wpbs-heading">';
 		$output .= '<div class="wpbs-calendar-header-navigation">';
 
 		// Add navigate previous
-		if(  $this->_months_iterator == 1 )
-			$output .= '<a href="#" class="wpbs-prev"><span class="wpbs-arrow"></span></a>';
+		if (!empty($this->args['show_button_navigation']) && $this->_months_iterator == 1)
+			$output .= '<button class="wpbs-prev" aria-label="' . __('Navigate to previous month', 'wp-booking-system') . '"><span class="wpbs-arrow"></span></button>';
 
 		// Add month selector
-		if( $year == $this->args['current_year'] && $month == $this->args['current_month'] ) {
+		if (!empty($this->args['show_selector_navigation']) && $year == $this->args['current_year'] && $month == $this->args['current_month']) {
 
-			$output .= $this->get_display_month_selector( $year, $month );
+			$output .= $this->get_display_month_selector($year, $month);
 
-		// Add the name of the month
+			// Add the name of the month
 		} else {
 
-			$output .= apply_filters( 'wpbs_calendar_output_month_selector_date_format', wpbs_get_month_name( $month, $this->args['language'] ) . ' ' . $year );
-
+			$output .= '<span class="wpbs-calendar-header-navigation-month-name">' . apply_filters('wpbs_calendar_output_month_selector_date_format', wpbs_get_month_name($month, $this->args['language']) . ' ' . $year) . '</span>';
 		}
 
 		// Add navigate next
-		if( $this->_months_iterator == 1 )
-			$output .= '<a href="#" class="wpbs-next"><span class="wpbs-arrow"></span></a>';
+		if (!empty($this->args['show_button_navigation']) && $this->_months_iterator == $this->args['months_to_show'])
+			$output .= '<button class="wpbs-next" aria-label="' . __('Navigate to next month', 'wp-booking-system') . '"><span class="wpbs-arrow"></span></button>';
 
 
 		$output .= '</div>'; // end .wpbs-calendar-header-navigation
 		$output .= '</div>'; // end .wpbs-calendar-header
 
 		return $output;
-
 	}
 
 
@@ -430,7 +463,8 @@ class WPBS_Calendar_Outputter {
 	 * @return string
 	 *
 	 */
-	protected function get_display_month_selector( $year, $month ) {
+	protected function get_display_month_selector($year, $month)
+	{
 
 		$output  = '<div class="wpbs-select-container">';
 
@@ -444,7 +478,7 @@ class WPBS_Calendar_Outputter {
 		 * @param int $month
 		 *
 		 */
-		$months_before = apply_filters( 'wpbs_calendar_output_month_selector_months_before', 3, $this->calendar->get('id'), $year, $month );
+		$months_before = apply_filters('wpbs_calendar_output_month_selector_months_before', 3, $this->calendar->get('id'), $year, $month);
 
 		/**
 		 * Hook to modify how many months are being displayed in the select dropdown
@@ -456,7 +490,7 @@ class WPBS_Calendar_Outputter {
 		 * @param int $month
 		 *
 		 */
-		$months_after  = apply_filters( 'wpbs_calendar_output_month_selector_months_after', 12, $this->calendar->get('id'), $year, $month );
+		$months_after  = apply_filters('wpbs_calendar_output_month_selector_months_after', 12, $this->calendar->get('id'), $year, $month);
 
 		/**
 		 * Hook to modify the maximum number of months to display before now()
@@ -467,7 +501,7 @@ class WPBS_Calendar_Outputter {
 		 * @param int $month
 		 *
 		 */
-		$months_before_max = apply_filters( 'wpbs_calendar_output_month_selector_months_before_max', -1, $this->calendar->get('id'), $year, $month );
+		$months_before_max = apply_filters('wpbs_calendar_output_month_selector_months_before_max', -1, $this->calendar->get('id'), $year, $month);
 
 		/**
 		 * Hook to modify the maximum number of months to display after now()
@@ -478,7 +512,23 @@ class WPBS_Calendar_Outputter {
 		 * @param int $month
 		 *
 		 */
-		$months_after_max  = apply_filters( 'wpbs_calendar_output_month_selector_months_after_max', -1, $this->calendar->get('id'), $year, $month );
+		$months_after_max  = apply_filters('wpbs_calendar_output_month_selector_months_after_max', -1, $this->calendar->get('id'), $year, $month);
+
+		/**
+		 * Hook to exclude months from the date selector
+		 *
+		 * @param array $months
+		 *
+		 */
+		$excluded_months = apply_filters('wpbs_calendar_output_month_selector_exclude_months', array());
+
+		/**
+		 * Hook to exclude past months from the date selector
+		 *
+		 * @param bool
+		 *
+		 */
+		$show_past_months = apply_filters('wpbs_calendar_output_month_selector_hide_past_months', true);
 
 		/**
 		 * Build the months array
@@ -489,14 +539,14 @@ class WPBS_Calendar_Outputter {
 		$select_options = array();
 
 		// Maximum before time
-		$before_max_month = date('n') + ( 12 * ceil( $months_before_max / 12 ) ) - $months_before_max;
-		$before_max_year  = $year - ceil( $months_before_max / 12 );
-		$time_before_max  = mktime( 0, 0, 0, $before_max_month, 1, $before_max_year );
+		$before_max_month = date('n') + (12 * ceil($months_before_max / 12)) - $months_before_max;
+		$before_max_year  = $year - ceil($months_before_max / 12);
+		$time_before_max  = mktime(0, 0, 0, $before_max_month, 1, $before_max_year);
 
 		// Maximum after time
-		$after_max_month = ( date('n') + $months_after_max - ( 12 * floor( ( date('n') + $months_after_max ) / 12 ) ) );
-		$after_max_year  = $year + floor( ( date('n') + $months_after_max ) / 12 );
-		$time_after_max  = mktime( 0, 0, 0, $after_max_month, 1, $after_max_year );
+		$after_max_month = (date('n') + $months_after_max - (12 * floor((date('n') + $months_after_max) / 12)));
+		$after_max_year  = $year + floor((date('n') + $months_after_max) / 12);
+		$time_after_max  = mktime(0, 0, 0, $after_max_month, 1, $after_max_year);
 
 
 		/**
@@ -506,35 +556,43 @@ class WPBS_Calendar_Outputter {
 		$_year  = $year;
 		$_month = $month;
 
-		for( $i = 1; $i <= $months_before; $i++ ) {
+		for ($i = 1; $i <= $months_before; $i++) {
 
 			// Exit loop if the max number of months has been reached
-			if( $months_before_max != -1 && mktime( 0, 0, 0, $_month, 1, $_year ) <= $time_before_max )
+			if ($months_before_max != -1 && mktime(0, 0, 0, $_month, 1, $_year) <= $time_before_max)
 				break;
 
 			$_month -= 1;
 
-			if( $_month < 1 ) {
+			if ($_month < 1) {
 				$_month += 12;
 				$_year  -= 1;
 			}
 
-			$select_options[] = array(
-				'value'  => mktime( 0, 0, 0, $_month, 15, $_year ),
-				'option' => apply_filters( 'wpbs_calendar_output_month_selector_date_format', wpbs_get_month_name( $_month, $this->args['language'] ) . ' ' . $_year )
-			);
+			if (in_array($_month, $excluded_months)) {
+				$months_before++;
+				continue;
+			}
 
+			if ($show_past_months === false && mktime(0, 0, 0, $_month + 1, 1, $_year) <= current_time('timestamp')) {
+				break;
+			}
+
+			$select_options[] = array(
+				'value'  => mktime(0, 0, 0, $_month, 15, $_year),
+				'option' => apply_filters('wpbs_calendar_output_month_selector_date_format', wpbs_get_month_name($_month, $this->args['language']) . ' ' . $_year)
+			);
 		}
 
-		$select_options = array_reverse( $select_options );
+		$select_options = array_reverse($select_options);
 
 		/**
 		 * Add given current month
 		 *
 		 */
 		$select_options[] = array(
-			'value'  => mktime( 0, 0, 0, $month, 15, $year ),
-			'option' => apply_filters( 'wpbs_calendar_output_month_selector_date_format', wpbs_get_month_name( $month, $this->args['language'] ) . ' ' . $year )
+			'value'  => mktime(0, 0, 0, $month, 15, $year),
+			'option' => apply_filters('wpbs_calendar_output_month_selector_date_format', wpbs_get_month_name($month, $this->args['language']) . ' ' . $year)
 		);
 
 		/**
@@ -543,24 +601,28 @@ class WPBS_Calendar_Outputter {
 		 */
 		$_year  = $year;
 		$_month = $month;
-		
-		for( $i = 1; $i <= $months_after; $i++ ) {
 
-			if( $months_after_max != -1 && mktime( 0, 0, 0, $_month, 1, $_year ) >= $time_after_max )
+		for ($i = 1; $i <= $months_after; $i++) {
+
+			if ($months_after_max != -1 && mktime(0, 0, 0, $_month, 1, $_year) >= $time_after_max)
 				break;
 
 			$_month += 1;
 
-			if( $_month > 12 ) {
+			if ($_month > 12) {
 				$_month -= 12;
 				$_year  += 1;
 			}
 
-			$select_options[] = array(
-				'value'  => mktime( 0, 0, 0, $_month, 15, $_year ),
-				'option' => apply_filters( 'wpbs_calendar_output_month_selector_date_format', wpbs_get_month_name( $_month, $this->args['language'] ) . ' ' . $_year )
-			);
+			if (in_array($_month, $excluded_months)) {
+				$months_after++;
+				continue;
+			}
 
+			$select_options[] = array(
+				'value'  => mktime(0, 0, 0, $_month, 15, $_year),
+				'option' => apply_filters('wpbs_calendar_output_month_selector_date_format', wpbs_get_month_name($_month, $this->args['language']) . ' ' . $_year)
+			);
 		}
 
 
@@ -568,18 +630,16 @@ class WPBS_Calendar_Outputter {
 		 * Output select
 		 *
 		 */
-		$output .= '<select>';
+		$output .= '<select name="wpbs-month-selector-dropdown" aria-label="' . __('Calendar month navigation', 'wp-booking-system') . '">';
 
-		foreach( $select_options as $select_option )
-			$output .= '<option value="' . esc_attr( $select_option['value'] ) . '" ' . selected( $select_option['value'], mktime( 0, 0, 0, $month, 15, $year ), false ) . '>' . $select_option['option'] . '</option>';
+		foreach ($select_options as $select_option)
+			$output .= '<option value="' . esc_attr($select_option['value']) . '" ' . selected($select_option['value'], mktime(0, 0, 0, $month, 15, $year), false) . '>' . $select_option['option'] . '</option>';
 
 		$output .= '</select>';
-
 
 		$output .= '</div>'; // end .wpbs-select-container
 
 		return $output;
-
 	}
 
 
@@ -593,24 +653,24 @@ class WPBS_Calendar_Outputter {
 	 * @return string
 	 *
 	 */
-	protected function get_display_day( $year, $month, $day ) {
+	protected function get_display_day($year, $month, $day)
+	{
 
 		$output = '';
+
+		/**
+		 * Get the custom event data for the current day
+		 *
+		 */
+		$data = $this->get_data_by_date($year, $month, $day);
 
 		/**
 		 * Get the event for the current day
 		 *
 		 */
-		$event = $this->get_event_by_date( $year, $month, $day );
+		$event = $this->get_event_by_date($year, $month, $day);
 
-		/**
-		 * Get the event for the current day from the iCal feeds
-		 *
-		 */
-		$ical_event = $this->get_ical_event_by_date( $year, $month, $day );
 
-		if( ! is_null( $ical_event ) )
-			$event = $ical_event;
 
 
 		/**
@@ -619,77 +679,140 @@ class WPBS_Calendar_Outputter {
 		 */
 		$legend_item = null;
 
-		if( ! is_null( $event ) ) {
+		if (!is_null($data) && isset($data['legend_item_id'])) {
+			foreach ($this->legend_items as $li) {
 
-			foreach( $this->legend_items as $li ) {
-
-				if( $event->get('legend_item_id') == $li->get('id') )
+				if ($data['legend_item_id'] == $li->get('id'))
 					$legend_item = $li;
-
 			}
+		} elseif (!is_null($event)) {
 
+			foreach ($this->legend_items as $li) {
+
+				if ($event->get('legend_item_id') == $li->get('id'))
+					$legend_item = $li;
+			}
 		}
-		
-		if( is_null( $legend_item ) )
+
+		if (is_null($legend_item))
 			$legend_item = $this->default_legend_item;
 
 		// Determine if the current day is today
-		$is_today = $this->is_date_today( $year, $month, $day );
+		$is_today = $this->is_date_today($year, $month, $day);
 
 		// Determine if the current day is in the past
-		$is_past  = $this->is_date_past( $year, $month, $day );
+		$is_past  = $this->is_date_past($year, $month, $day);
 
-		
+	
 
+		// Filter legend item
+		$legend_item = apply_filters('wpbs_calendar_outputter_display_day_legend_item', $legend_item, $this->calendar, $this->legend_items, $year, $month, $day);
+
+		// Determine if the current day is bookable
+		$is_bookable  = $this->is_date_bookable($year, $month, $day, $legend_item);
 
 		/**
 		 * Set the needed variables for the legend item output
 		 *
 		 */
-		if( ! empty( $day ) ) {
+		if (!empty($day)) {
 
 			$legend_item_id_icon   = $legend_item->get('id');
 			$legend_item_type_icon = $legend_item->get('type');
 
 
+			// If date is in the past
+			if ($is_past) {
 
+				if ($this->args['history'] == 2) {
+					$legend_item_id_icon   = $this->default_legend_item->get('id');
+					$legend_item_type_icon = $this->default_legend_item->get('type');
+				}
+
+				if ($this->args['history'] == 3) {
+					$legend_item_id_icon   = 0;
+					$legend_item_type_icon = 'single';
+				}
+			}
 		}
 
 
-		// Determine if the current day is bookable
-		$is_bookable  = $this->is_date_bookable( $year, $month, $day, $legend_item );
-
-		
-		/**
-		 * Set the price
-		 *
-		 */
-		$price = (!is_null($event) && !empty($event->get('price'))) ? $event->get('price') : $this->default_price;
-				
 
 		/**
 		 * Putting the day output pieces together
 		 *
 		 */
-		$output .= '<div class="wpbs-date ' . ( ! empty( $legend_item_id_icon ) && is_numeric( $legend_item_id_icon ) ? 'wpbs-legend-item-' . $legend_item->get('id') : '' ) . ' ' . ( $is_today ? 'wpbs-date-today' : '' ) . ' ' . ( empty( $day ) ? 'wpbs-gap' : '' ) . ' '. ($is_bookable ? 'wpbs-is-bookable' : '' ). ' " ' . ( ! empty( $day ) ? ( 'data-year="' . esc_attr( $year ) . '" data-month="' . esc_attr( $month ) . '" data-day="' . esc_attr( $day ) . '"' ) : '' ) . ' data-price="'.$price.'">';
+		$output .= '<div class="wpbs-date ' . (!empty($legend_item_id_icon) && is_numeric($legend_item_id_icon) ? 'wpbs-legend-item-' . $legend_item->get('id') : '') . ' ' . ($is_today && $this->args['highlight_today'] ? 'wpbs-date-today' : '') . ' ' . (empty($day) ? 'wpbs-gap' : '') . ' ' . ($is_bookable ? 'wpbs-is-bookable' : '') . '" ' . (!empty($day) ? ('data-year="' . esc_attr($year) . '" data-month="' . esc_attr($month) . '" data-day="' . esc_attr($day) . '"') : '') . ' ' . ($is_bookable ? 'tabindex="0"' : '') . '>';
 
-			if( ! empty( $day ) ) {
+		if (!empty($day)) {
 
-				/**
-				 * Legend item icon output
-				 *
-				 */
-				$output .= wpbs_get_legend_item_icon( $legend_item_id_icon, $legend_item_type_icon );
+			/**
+			 * Legend item icon output
+			 *
+			 */
+			$output .= wpbs_get_legend_item_icon($legend_item_id_icon, $legend_item_type_icon);
 
-			}
+			/**
+			 * Tooltip output
+			 *
+			 */
+			$output .= apply_filters('wpbs_calendar_outputter_tooltip_html', $this->get_display_day_tooltip($year, $month, $day), $this->args, $event, $this->calendar->get('id'), $year, $month, $day);
+		}
 
-			$output .= '<div class="wpbs-date-inner">' . ( ! empty( $day ) ? '<span class="wpbs-date-number">' . $day . '</span>' : '' ) . '</div>';
+
+		$output .= '<div class="wpbs-date-inner">' . (!empty($day) ? '<span class="wpbs-date-number">' . apply_filters('wpbs_calendar_outputter_date_number', $day, $event, $this->calendar) . '</span>' : '') . '</div>';
 
 		$output .= '</div>';
 
 		return $output;
-
 	}
+
+
+	/**
+	 * Constructs and returns the Tooltip HTML for the given day of the given month of the given year
+	 *
+	 * @param int $year
+	 * @param int $month
+	 * @param int $day
+	 *
+	 * @return string
+	 *
+	 */
+	protected function get_display_day_tooltip($year, $month, $day)
+	{
+
+		// Get event for the current day
+		$event = $this->get_event_by_date($year, $month, $day);
+
+		if (is_null($event))
+			return '';
+
+		if (!in_array($this->args['show_tooltip'], array(2, 3)))
+			return '';
+
+		if ($this->is_date_past($year, $month, $day) && in_array($this->args['history'], array(2, 3)))
+			return '';
+
+
+		// Set tooltip value
+		$tooltip = apply_filters('wpbs_calendar_outputter_tooltip', $event->get('tooltip'), $event);
+
+		if (empty($tooltip))
+			return '';
+
+		// Output the actual tooltip
+		$output = '<div class="wpbs-tooltip">';
+		$output .= '<strong>' . wpbs_date_i18n(get_option('date_format'), mktime(0, 0, 0, $month, $day, $year), $this->args['language'])  . '</strong>';
+		$output .= $tooltip;
+		$output .= '</div>';
+
+		// Output the red tooltip indicator
+		if ($this->args['show_tooltip'] == 3)
+			$output .= '<span class="wpbs-tooltip-corner"><!-- --></span>';
+
+		return $output;
+	}
+
 
 	/**
 	 * Constructs and returns the HTML for the calendar's legend
@@ -697,26 +820,25 @@ class WPBS_Calendar_Outputter {
 	 * @return string
 	 *
 	 */
-	protected function get_display_legend() {
+	protected function get_display_legend()
+	{
 
 		$output = '<div class="wpbs-legend">';
 
-		foreach( $this->legend_items as $legend_item ) {
+		foreach ($this->legend_items as $legend_item) {
 
-			if( $legend_item->get('is_visible') == 0 )
+			if (!$legend_item->get('is_visible'))
 				continue;
 
 			$output .= '<div class="wpbs-legend-item">';
-				$output .= wpbs_get_legend_item_icon( $legend_item->get('id'), $legend_item->get('type') );
-				$output .= '<span class=wpbs-legend-item-name>' . $legend_item->get_name( $this->args['language'] ) . '</span>';
+			$output .= wpbs_get_legend_item_icon($legend_item->get('id'), $legend_item->get('type'));
+			$output .= '<span class=wpbs-legend-item-name>' . $legend_item->get_name($this->args['language']) . '</span>';
 			$output .= '</div>';
-
 		}
 
 		$output .= '</div>';
 
 		return $output;
-
 	}
 
 	/**
@@ -725,15 +847,87 @@ class WPBS_Calendar_Outputter {
 	 * @return array
 	 * 
 	 */
-	protected function get_auto_pending_legend_changeover_ids(){
+	protected function get_auto_pending_legend_changeover_ids()
+	{
 		$legends = array();
-		foreach( $this->legend_items as $li ) {
-			if($li->get('auto_pending') == 'changeover_start' || $li->get('auto_pending') == 'changeover_end'){
-				$legends[] = $li;
+		foreach ($this->legend_items as $li) {
+			if ($li->get('auto_pending') == 'changeover_start' || $li->get('auto_pending') == 'changeover_end') {
+				$legends[$li->get('auto_pending')] = $li;
 			}
 		}
 
 		return $legends;
+	}
+
+	/**
+	 * Get first month with available dates
+	 * 
+	 */
+	protected function get_first_available_month()
+	{
+		$sorted_events = [];
+		$non_bookable_legend_items = [];
+		$bookable_legend_items = [];
+		$default_legend_is_unbookable = false;
+		foreach ($this->legend_items as $legend_item) {
+
+			if (!$legend_item->get('is_bookable')) {
+				$non_bookable_legend_items[] = $legend_item->get('id');
+				if ($legend_item->get('is_default')) {
+					$default_legend_is_unbookable = true;
+				}
+			} else {
+				$bookable_legend_items[] = $legend_item->get('id');
+			}
+		}
+
+		$events = $this->events;
+
+		// If the default legend is un-bookable, search for the first available date
+		if ($default_legend_is_unbookable) {
+			foreach ($events as $event) {
+
+				if ($this->is_date_past($event->get('date_year'), $event->get('date_month'), $event->get('date_day'))) {
+					continue;
+				}
+
+				if (in_array($event->get('legend_item_id'), $bookable_legend_items)) {
+					$sorted_events[$event->get('date_year') . str_pad($event->get('date_month'), 2, '0', STR_PAD_LEFT) . str_pad($event->get('date_day'), 2, '0', STR_PAD_LEFT)] = $event->get('legend_item_id');
+				}
+			}
+
+			ksort($sorted_events);
+
+			if ($sorted_events) {
+				$first_available_date = array_key_first($sorted_events);
+				$date = DateTime::createFromFormat('Ymd', $first_available_date);
+				$today = $date->getTimestamp();
+			}
+			// Else, search for the last booked date.
+		} else {
+			foreach ($events as $event) {
+				if (in_array($event->get('legend_item_id'), $non_bookable_legend_items)) {
+					$sorted_events[$event->get('date_year') . str_pad($event->get('date_month'), 2, '0', STR_PAD_LEFT) . str_pad($event->get('date_day'), 2, '0', STR_PAD_LEFT)] = $event->get('legend_item_id');
+				}
+			}
+			ksort($sorted_events);
+
+			$today = time();
+			while ($today < strtotime('+10 years')) {
+				if (array_key_exists(date('Ymd', $today), $sorted_events)) {
+					$today += DAY_IN_SECONDS;
+					continue;
+				}
+
+				break;
+			}
+		}
+
+
+		return [
+			'current_year' => date('Y', $today),
+			'current_month' => date('n', $today),
+		];
 	}
 
 
@@ -743,7 +937,8 @@ class WPBS_Calendar_Outputter {
 	 * @return string
 	 *
 	 */
-	protected function get_custom_css() {
+	protected function get_custom_css()
+	{
 
 		$output = '<style>';
 
@@ -754,55 +949,94 @@ class WPBS_Calendar_Outputter {
 		 * Legend Items CSS
 		 *
 		 */
-		foreach( $this->legend_items as $legend_item ) {
+		foreach ($this->legend_items as $legend_item) {
 
 			// Background colors
 			$colors = $legend_item->get('color');
 
-			$output .= $calendar_parent_class . ' .wpbs-legend-item-icon-' . esc_attr( $legend_item->get('id') ) . ' div:first-of-type { background-color: ' . ( ! empty( $colors[0] ) ? esc_attr( $colors[0] ) : 'transparent' ) . '; }';
-			$output .= $calendar_parent_class . ' .wpbs-legend-item-icon-' . esc_attr( $legend_item->get('id') ) . ' div:nth-of-type(2) { background-color: ' . ( ! empty( $colors[1] ) ? esc_attr( $colors[1] ) : 'transparent' ) . '; }';
+			$output .= $calendar_parent_class . ' .wpbs-legend-item-icon-' . esc_attr($legend_item->get('id')) . ' div:first-of-type { background-color: ' . (!empty($colors[0]) ? esc_attr($colors[0]) : 'transparent') . ' !important; }';
+			$output .= $calendar_parent_class . ' .wpbs-legend-item-icon-' . esc_attr($legend_item->get('id')) . ' div:nth-of-type(2) { background-color: ' . (!empty($colors[1]) ? esc_attr($colors[1]) : 'transparent') . ' !important; }';
 
-			$output .= $calendar_parent_class . ' .wpbs-legend-item-icon-' . esc_attr( $legend_item->get('id') ) . ' div:first-of-type svg { fill: ' . ( ! empty( $colors[0] ) ? esc_attr( $colors[0] ) : 'transparent' ) . '; }';
-			$output .= $calendar_parent_class . ' .wpbs-legend-item-icon-' . esc_attr( $legend_item->get('id') ) . ' div:nth-of-type(2) svg { fill: ' . ( ! empty( $colors[1] ) ? esc_attr( $colors[1] ) : 'transparent' ) . '; }';
+			$output .= $calendar_parent_class . ' .wpbs-legend-item-icon-' . esc_attr($legend_item->get('id')) . ' div:first-of-type svg { fill: ' . (!empty($colors[0]) ? esc_attr($colors[0]) : 'transparent') . ' !important; }';
+			$output .= $calendar_parent_class . ' .wpbs-legend-item-icon-' . esc_attr($legend_item->get('id')) . ' div:nth-of-type(2) svg { fill: ' . (!empty($colors[1]) ? esc_attr($colors[1]) : 'transparent') . ' !important; }';
 
 			// Text color
 			$color_text = $legend_item->get('color_text');
 
-			if( ! empty( $color_text ) )
-				$output .= $calendar_parent_class . ' .wpbs-legend-item-' . esc_attr( $legend_item->get('id') ) . ' .wpbs-date-number { color: ' . esc_attr( $color_text ) . '; }';
+			if (!empty($color_text)) {
+				$output .= $calendar_parent_class . ' .wpbs-legend-item-' . esc_attr($legend_item->get('id')) . ' .wpbs-date-number { color: ' . esc_attr($color_text) . ' !important; }';
+			}
 
+			if ($legend_item->get('is_default')) {
+				$output .= '.wpbs-ical-changeover .wpbs-legend-item-icon:after {background-color: ' . $colors[0] . ';}';
+			}
 		}
 
 		/**
 		 * Legend Item for Today CSS
 		 *
 		 */
-		$output .= $calendar_parent_class . ' .wpbs-legend-item-icon-today div:first-of-type { background-color: rgba( 33,150,243, .9 ); }';
+		$output .= $calendar_parent_class . ' .wpbs-legend-item-icon-today div:first-of-type { background-color: rgba( 33,150,243, .9 ) !important; }';
 
 		/**
 		 * Legend Item for Past Dates CSS
 		 *
 		 */
-		$output .= $calendar_parent_class . ' .wpbs-legend-item-icon-0 div:first-of-type { background-color: ' . ( ! empty( $this->plugin_settings['booking_history_color'] ) ? esc_attr( $this->plugin_settings['booking_history_color'] ) : '#e1e1e1' ) . '; }';
+		$output .= $calendar_parent_class . ' .wpbs-legend-item-icon-0 div:first-of-type { background-color: ' . (!empty($this->plugin_settings['booking_history_color']) ? esc_attr($this->plugin_settings['booking_history_color']) : '#e1e1e1') . ' !important; }';
 
 		/**
 		 * Booking Selection colors
 		 *
 		 */
-		$output .= '.wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-enable-hover .wpbs-is-bookable:hover:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon div:first-of-type, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-date-hover:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon div:first-of-type, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-date-hover.wpbs-selected-first.wpbs-selected-last .wpbs-legend-item-icon div:first-of-type { background-color: ' . ( ! empty( $this->plugin_settings['booking_selection_hover_color'] ) ? esc_attr( $this->plugin_settings['booking_selection_hover_color'] ) : '#7bb9e4' ) . '; }';
+		$output .= '.wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-enable-hover .wpbs-is-bookable:hover:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon div:first-of-type, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-date-hover:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon div:first-of-type, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-date-hover.wpbs-selected-first.wpbs-selected-last .wpbs-legend-item-icon div:first-of-type { background-color: ' . (!empty($this->plugin_settings['booking_selection_hover_color']) ? esc_attr($this->plugin_settings['booking_selection_hover_color']) : '#7bb9e4') . ' !important; }';
 
-		$output .= '.wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-enable-hover .wpbs-is-bookable:hover:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon[data-type="split"] div svg, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-date-hover:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon[data-type="split"] div svg, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-legend-item-icon .wpbs-legend-icon-select svg { fill: ' . ( ! empty( $this->plugin_settings['booking_selection_hover_color'] ) ? esc_attr( $this->plugin_settings['booking_selection_hover_color'] ) : '#7bb9e4' ) . '; }';
+		$output .= '.wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-enable-hover .wpbs-is-bookable:hover:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon[data-type="split"] div svg, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-date-hover:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon[data-type="split"] div svg, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-legend-item-icon .wpbs-legend-icon-select svg { fill: ' . (!empty($this->plugin_settings['booking_selection_hover_color']) ? esc_attr($this->plugin_settings['booking_selection_hover_color']) : '#7bb9e4') . ' !important; }';
 
-		$output .= '.wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-date-selected:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon div:first-of-type, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-date-selected.wpbs-selected-first.wpbs-selected-last .wpbs-legend-item-icon div:first-of-type, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-enable-hover .wpbs-date-selected:hover:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon div:first-of-type { background-color: ' . ( ! empty( $this->plugin_settings['booking_selection_selected_color'] ) ? esc_attr( $this->plugin_settings['booking_selection_selected_color'] ) : '#5aa7dd' ) . '; }';
+		$output .= '.wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-date-selected:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon div:first-of-type, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-date-selected.wpbs-selected-first.wpbs-selected-last .wpbs-legend-item-icon div:first-of-type, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-enable-hover .wpbs-date-selected:hover:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon div:first-of-type { background-color: ' . (!empty($this->plugin_settings['booking_selection_selected_color']) ? esc_attr($this->plugin_settings['booking_selection_selected_color']) : '#5aa7dd') . ' !important; }';
 
-		$output .= '.wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-date-selected:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon[data-type="split"] div svg, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-enable-hover .wpbs-date-selected:hover:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon[data-type="split"] div svg, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-date-selected .wpbs-legend-item-icon .wpbs-legend-icon-select svg { fill: ' . ( ! empty( $this->plugin_settings['booking_selection_selected_color'] ) ? esc_attr( $this->plugin_settings['booking_selection_selected_color'] ) : '#5aa7dd' ) . '; }';
+		$output .= '.wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-date-selected:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon[data-type="split"] div svg, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-enable-hover .wpbs-date-selected:hover:not(.wpbs-selected-first):not(.wpbs-selected-last) .wpbs-legend-item-icon[data-type="split"] div svg, .wpbs-main-wrapper:not(.wpbs-main-wrapper-form-0) .wpbs-date-selected .wpbs-legend-item-icon .wpbs-legend-icon-select svg { fill: ' . (!empty($this->plugin_settings['booking_selection_selected_color']) ? esc_attr($this->plugin_settings['booking_selection_selected_color']) : '#5aa7dd') . ' !important; }';
+
+		$output .= '.wpbs-date-today:not(.wpbs-date-hover):not(.wpbs-date-selected) .wpbs-legend-item-icon {border: 4px solid ' . (!empty($this->plugin_settings['today_highlight_color']) ? esc_attr($this->plugin_settings['today_highlight_color']) : '#7bb9e4') . ' !important;}';
+
+		/**
+		 * Form Position
+		 * 
+		 */
+		if (!empty($this->args['form_position']) && $this->args['form_position'] == 'side') {
+			$output .= '
+            @media screen and (min-width: 768px){
+                .wpbs-main-wrapper-calendar-' . $this->calendar->get('id') . ':not(.wpbs-main-wrapper-form-0) .wpbs-container {float:left;max-width:50%;}
+                .wpbs-main-wrapper-calendar-' . $this->calendar->get('id') . ':not(.wpbs-main-wrapper-form-0) .wpbs-form-container, .wpbs-payment-confirmation, .wpbs-form-confirmation-message {float:left; width:calc(50% - 40px); margin-left:40px !important; clear:none !important;}
+                .wpbs-main-wrapper-calendar-' . $this->calendar->get('id') . ':not(.wpbs-main-wrapper-form-0) .wpbs-form-container {padding-top:0 !important;}
+            } 
+            ';
+		}
 
 		$output .= '</style>';
 
 		return $output;
-
 	}
 
+	/**
+	 * Passes through all stored calendar data and searches for the data that matches the given date
+	 * If data is found it is returned, else null is returned
+	 *
+	 * @param int $year
+	 * @param int $month
+	 * @param int $day
+	 *
+	 * @return mixed array|null
+	 *
+	 */
+	protected function get_data_by_date($year, $month, $day)
+	{
+
+		if (isset($this->data[$year][$month][$day])) {
+			return $this->data[$year][$month][$day];
+		}
+
+		return null;
+	}
 
 	/**
 	 * Passes through all stored events and searches for the event that matches the given date
@@ -815,42 +1049,16 @@ class WPBS_Calendar_Outputter {
 	 * @return mixed WPBS_Event|null
 	 *
 	 */
-	protected function get_event_by_date( $year, $month, $day ) {
+	protected function get_event_by_date($year, $month, $day)
+	{
 
-		foreach( $this->events as $event ) {
+		foreach ($this->events as $event) {
 
-			if( $event->get('date_year') == $year && $event->get('date_month') == $month && $event->get('date_day') == $day )
+			if ($event->get('date_year') == $year && $event->get('date_month') == $month && $event->get('date_day') == $day)
 				return $event;
-
 		}
 
 		return null;
-
-	}
-
-
-	/**
-	 * Passes through all stored ical events and searches for the event that matches the given date
-	 * If an event is found it is returned, else null is returned
-	 *
-	 * @param int $year
-	 * @param int $month
-	 * @param int $day
-	 *
-	 * @return mixed WPBS_Event|null
-	 *
-	 */
-	protected function get_ical_event_by_date( $year, $month, $day ) {
-
-		foreach( $this->ical_events as $event ) {
-
-			if( $event->get('date_year') == $year && $event->get('date_month') == $month && $event->get('date_day') == $day )
-				return $event;
-
-		}
-
-		return null;
-
 	}
 
 
@@ -864,17 +1072,17 @@ class WPBS_Calendar_Outputter {
 	 * @return bool
 	 *
 	 */
-	protected function is_date_today( $year, $month, $day ) {
+	protected function is_date_today($year, $month, $day)
+	{
 
 		$today_year  = current_time('Y');
 		$today_month = current_time('n');
 		$today_day	 = current_time('j');
 
-		if( $today_year == $year && $today_month == $month && $today_day == $day )
+		if ($today_year == $year && $today_month == $month && $today_day == $day)
 			return true;
 		else
 			return false;
-
 	}
 
 
@@ -888,13 +1096,13 @@ class WPBS_Calendar_Outputter {
 	 * @return bool
 	 *
 	 */
-	protected function is_date_past( $year, $month, $day ) {
+	protected function is_date_past($year, $month, $day)
+	{
 
-		$today = mktime( 0, 0, 0, current_time('n'), current_time('j'), current_time('Y') );
-		$date  = mktime( 0, 0, 0, $month, $day, $year );
+		$today = mktime(0, 0, 0, current_time('n'), current_time('j'), current_time('Y'));
+		$date  = mktime(0, 0, 0, $month, $day, $year);
 
-		return ( $today > $date );
-
+		return ($today > $date);
 	}
 
 	/**
@@ -908,113 +1116,37 @@ class WPBS_Calendar_Outputter {
 	 * @return bool
 	 *
 	 */
-	protected function is_date_bookable( $year, $month, $day, $legend_item ) {
+	protected function is_date_bookable($year, $month, $day, $legend_item)
+	{
 
-		if($day === 0){
+		if ($day === 0) {
 			return false;
 		}
 
-		if($legend_item->get('is_bookable') == false) {
+		if (!$legend_item->get('is_bookable')) {
 			return false;
 		}
 
-		if($this->is_date_past( $year, $month, $day )){
+		if (isset($this->args['manual_booking']) && $this->args['manual_booking']) {
+			return true;
+		}
+
+		if ($this->is_date_past($year, $month, $day)) {
 			return false;
 		}
 
-		return true;
-
+		return apply_filters('wpbs_calendar_outputter_is_day_bookable', true, $year, $month, $day, $legend_item);
 	}
 
-	
-
-
-	/**
-	 * Refreshes the iCal feeds attached to the calendar
-	 *
-	 */
-	protected function refresh_ical_feeds() {
-
-		if( defined( 'DOING_AJAX' ) && DOING_AJAX )
-			return;
-
-		// Get iCal feeds
-		$ical_feeds = wpbs_get_calendar_meta_ical_feeds( $this->calendar->get('id') );
-
-		if( empty( $ical_feeds ) )
-			return;
-
-		$refresh_time = 0;
-
-		// Get and set refresh time
-		if( empty( $this->plugin_settings['ical_refresh_times'] ) || $this->plugin_settings['ical_refresh_times'] == 'hourly' ) {
-
-			$refresh_time = HOUR_IN_SECONDS;
-
-		} else {
-
-			if( $this->plugin_settings['ical_refresh_times'] == 'hourly' )
-				$refresh_time = HOUR_IN_SECONDS;
-
-			elseif( $this->plugin_settings['ical_refresh_times'] == 'daily' )
-				$refresh_time = DAY_IN_SECONDS;
-
-			elseif( $this->plugin_settings['ical_refresh_times'] == 'custom' ) {
-
-				if( empty( $this->plugin_settings['ical_custom_refresh_time'] ) || $this->plugin_settings['ical_custom_refresh_time'] < 0 )
-					$refresh_time = 0;
-
-				else {
-
-					$refresh_unit = ( empty( $this->plugin_settings['ical_custom_refresh_time_unit'] ) || $this->plugin_settings['ical_custom_refresh_time_unit'] == 'minutes' ? MINUTE_IN_SECONDS : DAY_IN_SECONDS );
-					$refresh_time = absint( $this->plugin_settings['ical_custom_refresh_time'] ) * $refresh_unit;
-
-				}
-
-			}
-
-		}
-
-		// Fetch new feeds
-		foreach( $ical_feeds as $ical_feed ) {
-
-			if( empty( $ical_feed['id'] ) )
-				continue;
-
-			if( empty( $ical_feed['url'] ) )
-				continue;
-
-			if( $refresh_time != 0 && strtotime( $ical_feed['last_updated'] ) > ( current_time('timestamp') - $refresh_time ) )
-				continue;
-
-			$ical_contents = wp_remote_get( $ical_feed['url'], array( 'timeout' => 30 ) );
-
-			if( wp_remote_retrieve_response_code( $ical_contents ) != 200 )
-				continue;
-
-			$ical_contents = wp_remote_retrieve_body( $ical_contents );
-
-			if( 0 !== strpos( $ical_contents, 'BEGIN:VCALENDAR' ) || false === strpos( $ical_contents, 'END:VCALENDAR' ) )
-				continue;
-
-			$ical_feed['file_contents'] = $ical_contents;
-			$ical_feed['last_updated']  = current_time( 'Y-m-d H:i:s' );
-
-			wpbs_update_calendar_meta( $this->calendar->get('id'), 'ical_feed_' . $ical_feed['id'], $ical_feed );
-
-		}
-
-	}
 
 
 	/**
 	 * Helper function that prints the calendar
 	 *
 	 */
-	public function display() {
+	public function display()
+	{
 
 		echo $this->get_display();
-
 	}
-
 }

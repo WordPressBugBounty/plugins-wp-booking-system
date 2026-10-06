@@ -17,15 +17,6 @@ class WPBS_Booking_Mailer extends WPBS_Mailer
      */
     protected $post_data;
 
-    /**
-     * The booking
-     *
-     * @access protected
-     * @var    WPBS_Booking
-     *
-     */
-    protected $booking;
-
     public function __construct($booking, $post_data)
     {
 
@@ -41,6 +32,11 @@ class WPBS_Booking_Mailer extends WPBS_Mailer
          */
         $this->post_data = $post_data;
 
+        /**
+         * Set the language
+         *
+         */
+        $this->language = wpbs_get_booking_meta($this->booking->get('id'), 'submitted_language', true);
     }
 
     /**
@@ -51,23 +47,30 @@ class WPBS_Booking_Mailer extends WPBS_Mailer
      */
     public function prepare($type)
     {
+
+        switch_to_locale(wpbs_language_to_locale($this->language));
+
+        $this->type = $type;
+
         // Check if $type is a valid notification type
         if (!in_array($type, array('accept_booking', 'customer'))) {
             return false;
         }
 
         // Set Fields
-        $this->send_to = $this->get_field('send_to', $type);
-        $this->from_name = $this->get_field('from_name', $type);
-        $this->from_email = $this->get_field('from_email', $type);
-        $this->reply_to = $this->get_field('reply_to', $type);
-        $this->subject = $this->get_field('subject', $type);
-        $this->message = nl2br($this->get_field('message', $type));
+        $this->send_to = apply_filters('wpbs_booking_mailer_send_to', $this->get_field('send_to', $type), $type, $this->booking, $this->post_data);
+        $this->send_to_cc = apply_filters('wpbs_booking_mailer_send_to_cc', $this->get_field('send_to_cc', $type), $type, $this->booking, $this->post_data);
+        $this->send_to_bcc = apply_filters('wpbs_booking_mailer_send_to_bcc', $this->get_field('send_to_bcc', $type), $type, $this->booking, $this->post_data);
+        $this->from_name = apply_filters('wpbs_booking_mailer_from_name', $this->get_field('from_name', $type), $type, $this->booking, $this->post_data);
+        $this->from_email = apply_filters('wpbs_booking_mailer_from_email', $this->get_field('from_email', $type), $type, $this->booking, $this->post_data);
+        $this->reply_to = apply_filters('wpbs_booking_mailer_reply_to', $this->get_field('reply_to', $type), $type, $this->booking, $this->post_data);
+        $this->subject = apply_filters('wpbs_booking_mailer_subject', $this->get_field('subject', $type), $type, $this->booking, $this->post_data);
+        $this->message = apply_filters('wpbs_booking_mailer_message', $this->get_field('message', $type), $type, $this->booking, $this->post_data);
+        $this->attachments = apply_filters('wpbs_booking_mailer_attachments', array(), $type, $this->booking, $this->post_data);
 
         if ($this->get_field('include_booking_details', $type) !== null && !empty($this->get_field('include_booking_details', $type))) {
             $this->include_booking_details();
         }
-
     }
 
     /**
@@ -83,12 +86,11 @@ class WPBS_Booking_Mailer extends WPBS_Mailer
     {
         if (isset($this->post_data['booking_email_' . $type . '_' . $field])) {
             if ($field == 'message') {
-                return $this->post_data['booking_email_' . $type . '_' . $field];
+                return wp_kses_post($this->post_data['booking_email_' . $type . '_' . $field]);
             } else {
-                return esc_attr($this->post_data['booking_email_' . $type . '_' . $field]);
+                return sanitize_text_field($this->post_data['booking_email_' . $type . '_' . $field]);
             }
         }
-
     }
 
     /**
@@ -102,19 +104,27 @@ class WPBS_Booking_Mailer extends WPBS_Mailer
      */
     protected function include_booking_details()
     {
+
+        $settings = get_option('wpbs_settings', array());
+
+        // Get the order
+
         $this->message .= '<br /><br />';
 
-        $this->message .= '<h3>' . __('Your booking details') . '</h3>';
+        $this->message .= '<table>';
 
-        $this->message .= '<br /><br />';
+        $this->message .= '<tr class="wpbs-table-first-row"><th style="text-align:left;"><strong>' . wpbs_get_form_default_string($this->booking->get('form_id'), 'booking_id', $this->language) . '</strong></th><td>#' . $this->booking->get('id') . '</td></tr>';
+        $this->message .= '<tr><th style="text-align:left;"><strong>' . wpbs_get_form_default_string($this->booking->get('form_id'), 'start_date', $this->language) . '</strong></th><td>' . wpbs_date_i18n(get_option('date_format'), strtotime($this->booking->get('start_date'))) . '</td></tr>';
+        $this->message .= '<tr><th style="text-align:left;"><strong>' . wpbs_get_form_default_string($this->booking->get('form_id'), 'end_date', $this->language) . '</strong></th><td>' . wpbs_date_i18n(get_option('date_format'), strtotime($this->booking->get('end_date'))) . '</td></tr>';
+        $this->message .= '<tr><th style="text-align:left;"><strong>' . wpbs_get_form_default_string($this->booking->get('form_id'), 'booked_on', $this->language) . '</strong></th><td>' . wpbs_date_i18n(get_option('date_format'), strtotime($this->booking->get('date_created'))) . '</td></tr>';
 
-        $this->message .= '<strong>' . __('Booking ID', 'wp-booking-system') . '</strong>: #' . $this->booking->get('id') . '<br>';
-        $this->message .= '<strong>' . __('Start Date', 'wp-booking-system') . '</strong>: ' . date_i18n(get_option('date_format'), strtotime($this->booking->get('start_date'))) . '<br>';
-        $this->message .= '<strong>' . __('End Date', 'wp-booking-system') . '</strong>: ' . date_i18n(get_option('date_format'), strtotime($this->booking->get('end_date'))) . '<br>';
-        $this->message .= '<strong>' . __('Booked on', 'wp-booking-system') . '</strong>: ' . date_i18n(get_option('date_format'), strtotime($this->booking->get('date_created'))) . '<br>';
 
-       
-
+        $conditional_logic = new WPBS_Form_Conditional_Logic($this->booking->get('fields'), strtotime($this->booking->get('start_date')), strtotime($this->booking->get('end_date')), [
+            'selection_style' => wpbs_get_booking_meta($this->booking->get('form_id'), 'selection_style', true),
+            'calendar_id' => $this->booking->get('calendar_id'),
+            'booking_id' => $this->booking->get('id')
+        ]);
+        $conditional_logic_hidden_fields = $conditional_logic->get_hidden_fields();
 
         foreach ($this->booking->get('fields') as $field) {
 
@@ -122,18 +132,54 @@ class WPBS_Booking_Mailer extends WPBS_Mailer
                 continue;
             }
 
+            // Skip field if it was hidden in the form by the conditional logic.
+            if (array_key_exists($field['id'], $conditional_logic_hidden_fields)) {
+                continue;
+            }
+
             // Get value
             $value = (isset($field['user_value'])) ? $field['user_value'] : '';
+
+           
             $value = wpbs_get_field_display_user_value($value);
 
             if ($field['type'] == 'textarea') {
                 $value = nl2br($value);
             }
 
+           
+            // Maybe skip empty fields
+            if (apply_filters('wpbs_email_tags_all_fields_skip_empty', (isset($settings['skip_empty_dynamic_tags']) && $settings['skip_empty_dynamic_tags'] == 'on' ? true : false)) && ($value == '-' || !$value)) {
+                continue;
+            }
 
-            $this->message .= '<strong>' . $field['values']['default']['label'] . '</strong>: ' . $value . '<br>';
-
+            $this->message .= '<tr><th style="text-align:left;"><strong>' . $this->get_form_field_translation($field['values'], 'label', $this->language) . '</strong></th><td>' . $value . '</td></tr>';
         }
+
+        $this->message .= '</table>';
+
     }
 
+    /**
+     * Helper function to get translations
+     *
+     * @param array $values
+     * @param string $key
+     * @param string $language
+     *
+     * @return string
+     *
+     */
+    protected function get_form_field_translation($values, $key, $language)
+    {
+        if (array_key_exists($language, $values) && !empty($values[$language][$key])) {
+            return $values[$language][$key];
+        }
+
+        if (isset($values['default'][$key])) {
+            return $values['default'][$key];
+        }
+
+        return '(no label)';
+    }
 }

@@ -16,7 +16,6 @@ class WPBS_Submenu_Page_Calendars extends WPBS_Submenu_Page
     {
 
         add_action('admin_init', array($this, 'register_admin_notices'), 10);
-
     }
 
     /**
@@ -48,8 +47,65 @@ class WPBS_Submenu_Page_Calendars extends WPBS_Submenu_Page
         // Calendar delete success
         wpbs_admin_notices()->register_notice('calendar_delete_success', '<p>' . __('Calendar has been successfully deleted.', 'wp-booking-system') . '</p>');
 
+        // Legend item insert success
+        wpbs_admin_notices()->register_notice('legend_item_insert_success', '<p>' . __('Legend item created successfully.', 'wp-booking-system') . '</p>');
+
+        // Legend item update success
+        wpbs_admin_notices()->register_notice('legend_item_update_success', '<p>' . __('Legend item updated successfully.', 'wp-booking-system') . '</p>');
+
+        // Legend item delete success
+        wpbs_admin_notices()->register_notice('legend_item_delete_success', '<p>' . __('Legend item deleted successfully.', 'wp-booking-system') . '</p>');
+
+        // Legend items sort fail
+        wpbs_admin_notices()->register_notice('sort_legend_items_fail', '<p>' . __('Something went wrong. Could not sort the legend items.', 'wp-booking-system') . '</p>', 'error');
+
+        // Legend item make visible/invisible
+        if ($_GET['wpbs_message'] == 'legend_item_make_visible_success' || $_GET['wpbs_message'] == 'legend_item_make_invisible_success') {
+
+            $legend_item_id = absint($_GET['legend_item_id']);
+            $legend_item = wpbs_get_legend_item($legend_item_id);
+
+            wpbs_admin_notices()->register_notice('legend_item_make_visible_success', '<p>' . sprintf(__('Legend item %s is now visible.', 'wp-booking-system'), '<strong>' . $legend_item->get('name') . '</strong>') . '</p>');
+            wpbs_admin_notices()->register_notice('legend_item_make_invisible_success', '<p>' . sprintf(__('Legend item %s is now hidden.', 'wp-booking-system'), '<strong>' . $legend_item->get('name') . '</strong>') . '</p>');
+        }
+
+        // Legend item make bookable/unbookable
+        if ($_GET['wpbs_message'] == 'legend_item_make_bookable_success' || $_GET['wpbs_message'] == 'legend_item_make_unbookable_success') {
+
+            $legend_item_id = absint($_GET['legend_item_id']);
+            $legend_item = wpbs_get_legend_item($legend_item_id);
+
+            wpbs_admin_notices()->register_notice('legend_item_make_bookable_success', '<p>' . sprintf(__('Legend item %s is now bookable.', 'wp-booking-system'), '<strong>' . $legend_item->get('name') . '</strong>') . '</p>');
+            wpbs_admin_notices()->register_notice('legend_item_make_unbookable_success', '<p>' . sprintf(__('Legend item %s is no longer bookable.', 'wp-booking-system'), '<strong>' . $legend_item->get('name') . '</strong>') . '</p>');
+        }
+
+        // Legend item "change auto accept as"
+        if ($_GET['wpbs_message'] == 'legend_item_change_auto_pending_success') {
+
+            $legend_item_id = absint($_GET['legend_item_id']);
+            $legend_item = wpbs_get_legend_item($legend_item_id);
+
+            wpbs_admin_notices()->register_notice('legend_item_change_auto_pending_success', '<p>' . sprintf(__('Automatically Block as for %s was updated.', 'wp-booking-system'), '<strong>' . $legend_item->get('name') . '</strong>') . '</p>');
+        }
+
+        // Legend item make default
+        if ($_GET['wpbs_message'] == 'legend_item_make_default_success') {
+
+            $legend_item_id = absint($_GET['legend_item_id']);
+            $legend_item = wpbs_get_legend_item($legend_item_id);
+
+            wpbs_admin_notices()->register_notice('legend_item_make_default_success', '<p>' . sprintf(__('%s legend item is now the default one.', 'wp-booking-system'), '<strong>' . $legend_item->get('name') . '</strong>') . '</p>');
+        }
+
+        
         // Booking Permanently Deleted
         wpbs_admin_notices()->register_notice('booking_permanently_delete_success', '<p>' . __('Booking successfully deleted.', 'wp-booking-system') . '</p>');
+
+        // Bookings Permanently Deleted
+        wpbs_admin_notices()->register_notice('bookings_permanently_delete_success', '<p>' . __('Bookings successfully deleted.', 'wp-booking-system') . '</p>');
+
+        // Booking Moved
+        wpbs_admin_notices()->register_notice('booking_moved_success', '<p>' . __('Booking successfully moved.', 'wp-booking-system') . '</p>');
 
     }
 
@@ -70,7 +126,6 @@ class WPBS_Submenu_Page_Calendars extends WPBS_Submenu_Page
                 } else {
                     include 'views/view-add-calendar.php';
                 }
-
             }
 
             if ($this->current_subpage == 'edit-calendar') {
@@ -78,19 +133,52 @@ class WPBS_Submenu_Page_Calendars extends WPBS_Submenu_Page
             }
 
             if ($this->current_subpage == 'view-legend') {
-                include WPBS_PLUGIN_DIR . 'includes/base/admin/upgrade-to-premium.php';
+                include 'views/view-legend.php';
+            }
+
+            if ($this->current_subpage == 'add-legend-item') {
+                include 'views/view-add-edit-legend-item.php';
+            }
+
+            if ($this->current_subpage == 'edit-legend-item') {
+                include 'views/view-add-edit-legend-item.php';
             }
 
             if ($this->current_subpage == 'ical-import-export') {
                 include WPBS_PLUGIN_DIR . 'includes/base/admin/upgrade-to-premium.php';
             }
 
-            if ($this->current_subpage == 'upgrade-to-premium') {
-               include WPBS_PLUGIN_DIR . 'includes/base/admin/upgrade-to-premium.php';
+            if ($this->current_subpage == 'csv-export') {
+                include WPBS_PLUGIN_DIR . 'includes/base/admin/upgrade-to-premium.php';
             }
 
+            if ($this->current_subpage == 'upgrade-to-premium') {
+                include WPBS_PLUGIN_DIR . 'includes/base/admin/upgrade-to-premium.php';
+            }
         }
-
     }
 
+    /**
+     * Returns an array with the page tabs that should be displayed on the page
+     *
+     * @return array
+     *
+     */
+    protected function get_tabs()
+    {
+
+        $tabs = array(
+            'edit-dates'            => __('Edit Dates', 'wp-booking-system'),
+            'calendar-options'      => __('Calendar Options', 'wp-booking-system'),
+            'notes'                 => __('Notes', 'wp-booking-system')
+        );
+
+        /**
+         * Filter the tabs before returning
+         *
+         * @param array $tabs
+         *
+         */
+        return apply_filters('wpbs_submenu_page_calendar_tabs', $tabs);
+    }
 }

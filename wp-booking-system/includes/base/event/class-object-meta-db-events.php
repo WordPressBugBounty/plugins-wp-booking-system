@@ -72,7 +72,7 @@ Class WPBS_Object_Meta_DB_Events extends WPBS_Object_Meta_DB {
 			event_id bigint(20) NOT NULL DEFAULT '0',
 			meta_key varchar(255) DEFAULT NULL,
 			meta_value longtext,
-			PRIMARY KEY  (meta_id),
+			PRIMARY KEY (meta_id),
 			KEY event_id (event_id),
 			KEY meta_key (meta_key(191))
 		) {$charset_collate};";

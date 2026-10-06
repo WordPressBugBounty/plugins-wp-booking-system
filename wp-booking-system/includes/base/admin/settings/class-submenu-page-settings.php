@@ -29,6 +29,12 @@ Class WPBS_Submenu_Page_Settings extends WPBS_Submenu_Page {
 			wpbs_admin_notices()->display_notice( 'settings_save_success' );
 		}
 
+		wpbs_admin_notices()->register_notice('booking_wipe_successful', '<p>' . __('All bookings and booking related data were successfully removed.', 'wp-booking-system') . '</p>');
+
+		wpbs_admin_notices()->register_notice('payment_reminder_cron_regenerate_success', '<p>' . __('Cron jobs successfully regenerated.', 'wp-booking-system') . '</p>');
+
+		wpbs_admin_notices()->register_notice('copy_prices_success', '<p>' . __('Prices successfully copied.', 'wp-booking-system') . '</p>');
+
 	}
 
 
@@ -43,7 +49,10 @@ Class WPBS_Submenu_Page_Settings extends WPBS_Submenu_Page {
 		$tabs = array(
 			'general' 	=> __( 'General', 'wp-booking-system' ),
 			'languages' => __( 'Languages', 'wp-booking-system' ),
-			'form' 		=> __( 'Form', 'wp-booking-system' )
+			'form' 		=> __( 'Form', 'wp-booking-system' ),
+			'booking' 	=> __( 'Booking', 'wp-booking-system' ),
+			'email' 	=> __( 'Email', 'wp-booking-system' ),
+			'strings' 	=> __( 'Strings & Translations', 'wp-booking-system' ),
 		);
 
 		/**
@@ -53,6 +62,27 @@ Class WPBS_Submenu_Page_Settings extends WPBS_Submenu_Page {
 		 *
 		 */
 		return apply_filters( 'wpbs_submenu_page_settings_tabs', $tabs );
+
+	}
+
+	/**
+	 * Returns an array with the sub tabs for the String & Translations page
+	 *
+	 * @return array
+	 *
+	 */
+	protected function get_string_tabs(){
+		$tabs = array(
+			'form' => __('Form Strings', 'wp-booking-system'),
+		);
+
+		/**
+		 * Filter the tabs before returning
+		 *
+		 * @param array $tabs
+		 *
+		 */
+		return apply_filters('wpbs_submenu_page_settings_strings_tabs', $tabs);
 
 	}
 

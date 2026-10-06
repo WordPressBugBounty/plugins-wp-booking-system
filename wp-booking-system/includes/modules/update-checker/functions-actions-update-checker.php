@@ -133,10 +133,9 @@ function wpbs_action_check_for_updates() {
 
 	do_action_ref_array( 'check_plugin_updates-wp-booking-system-premium', array() );
 
-	// Check for addon updates.
-	do_action('wpbs_check_addon_updates');
-
 	delete_transient( 'wpbs_subscription_type' );
+
+	delete_transient( 'wpbs_serial_status' );
 
 	// Redirect to the settings page with a success message
 	wp_redirect( add_query_arg( array( 'page' => 'wpbs-settings', 'tab' => 'register_website', 'wpbs_message' => 'check_for_updates_success' ), admin_url( 'admin.php' ) ) );
