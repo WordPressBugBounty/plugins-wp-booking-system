@@ -155,7 +155,7 @@ class WPBS_Form_Handler
         /**
          * Process Data
          */
-        
+
         // Hook fired before the booking is created
         do_action('wpbs_submit_form_begin', $this->post_data, $this->calendar, $this->form, $this->form_fields);
 
@@ -191,7 +191,7 @@ class WPBS_Form_Handler
     protected function create_booking()
     {
 
-        $booking_status = wpbs_get_form_meta($this->form_id, 'form_default_booking_status', true) ? : 'pending';
+        $booking_status = wpbs_get_form_meta($this->form_id, 'form_default_booking_status', true) ?: 'pending';
 
         $booking_data = array(
             'calendar_id' => absint($this->calendar_id),
@@ -223,7 +223,8 @@ class WPBS_Form_Handler
         wpbs_update_booking_meta($this->booking_id, 'submitted_language', $this->language);
 
         // Save the customer's IP address
-        wpbs_update_booking_meta($this->booking_id, 'customer_ip', apply_filters('wpbs_form_handler_customer_ip_address', wpbs_get_user_ip_address()));
+        $customer_ip = apply_filters('wpbs_form_handler_customer_ip_address', wpbs_get_user_ip_address());
+        wpbs_update_booking_meta($this->booking_id, 'customer_ip', wpbs_validate_ip_address($customer_ip));
 
         // Save the user ID if they are logged in
         if (is_user_logged_in()) {
@@ -232,11 +233,10 @@ class WPBS_Form_Handler
 
         // Save the post ID where the booking was made
         parse_str($this->post_data['form_data'], $form_data);
-        
+
         if (isset($form_data['wpbs-post-id'])) {
             wpbs_update_booking_meta($this->booking_id, 'post_id', $form_data['wpbs-post-id']);
         }
-
     }
 
     /**
@@ -342,7 +342,7 @@ class WPBS_Form_Handler
         }
 
         $events_data = apply_filters('wpbs_form_handler_auto_pending_events', $events_data, $selection_style, $this->calendar_id, $legend_item_booked, $legend_item_changeover_start, $legend_item_changeover_end, $this->post_data, $this->form_fields);
-        
+
         // Auto-fill event description from Form Settings
         $autofill_fields = array('description', 'tooltip');
 
@@ -376,7 +376,6 @@ class WPBS_Form_Handler
             } else {
                 wpbs_insert_event($event_data);
             }
-
         }
     }
 
@@ -395,9 +394,8 @@ class WPBS_Form_Handler
 
         $emails = new WPBS_Email_Notifications($this->booking_id);
         $emails->schedule_emails();
-        
-        $emails->send_booking_created_emails();
 
+        $emails->send_booking_created_emails();
     }
 
     /**
@@ -425,9 +423,8 @@ class WPBS_Form_Handler
             $confirmation_message = apply_filters('wpbs_submit_form_confirmation_message', $confirmation_message, $this->booking_id, $this->language);
 
             $this->response['confirmation_message'] = wpautop($confirmation_message);
-
         } elseif ($confirmation_type == 'redirect') {
-            
+
             $confirmation_redirect_url = wpbs_get_translated_form_meta($this->form_id, 'form_confirmation_redirect_url', $this->language);
 
             $confirmation_redirect_url = apply_filters('wpbs_submit_form_confirmation_url', $confirmation_redirect_url, $this->booking_id);
@@ -438,7 +435,6 @@ class WPBS_Form_Handler
         }
 
         $this->tracking_script();
-
     }
 
     /**
@@ -479,5 +475,4 @@ class WPBS_Form_Handler
     {
         return $this->response;
     }
-
 }

@@ -239,22 +239,36 @@ function wpbs_date_i18n($format, $timestamp, $language = false)
     return $date;
 }
 
+
 /**
- * Get users IP Address
- *
+ * Return a valid IPv4/IPv6 address, or an empty string.
+ */
+function wpbs_validate_ip_address($ip)
+{
+    if (!is_string($ip)) {
+        return '';
+    }
+
+    $ip = trim($ip);
+
+    return filter_var($ip, FILTER_VALIDATE_IP) !== false ? $ip : '';
+}
+
+/**
+ * Get the visitor's IP address.
  */
 function wpbs_get_user_ip_address()
 {
-    if (array_key_exists('HTTP_X_FORWARDED_FOR', $_SERVER) && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        if (strpos($_SERVER['HTTP_X_FORWARDED_FOR'], ',') > 0) {
-            $addr = explode(",", $_SERVER['HTTP_X_FORWARDED_FOR']);
-            return trim($addr[0]);
-        } else {
-            return $_SERVER['HTTP_X_FORWARDED_FOR'];
+    if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) && is_string($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $addresses = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        $ip = wpbs_validate_ip_address($addresses[0]);
+
+        if ($ip !== '') {
+            return $ip;
         }
-    } else {
-        return $_SERVER['REMOTE_ADDR'];
     }
+
+    return wpbs_validate_ip_address(isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '');
 }
 
 /**

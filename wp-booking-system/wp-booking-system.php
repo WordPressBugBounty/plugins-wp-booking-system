@@ -3,7 +3,7 @@
  * Plugin Name: WP Booking System
  * Plugin URI: https://www.wpbookingsystem.com/
  * Description: A set-and-forget booking calendar for your rental business.
- * Version: 2.1
+ * Version: 2.1.0.1
  * Author: Veribo, Roland Murg
  * Author URI: https://www.wpbookingsystem.com/
  * Text Domain: wp-booking-system
@@ -61,7 +61,7 @@ class WP_Booking_System
     {
 
         // Defining constants
-        define('WPBS_VERSION', '2.1');
+        define('WPBS_VERSION', '2.1.0.1');
         define('WPBS_FILE', __FILE__);
         define('WPBS_BASENAME', plugin_basename(__FILE__));
         define('WPBS_PLUGIN_DIR', plugin_dir_path(__FILE__));
