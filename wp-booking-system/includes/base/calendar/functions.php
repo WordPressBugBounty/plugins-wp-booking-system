@@ -334,11 +334,32 @@ function wpbs_get_calendar_overview_output_default_args()
 function wpbs_get_bookings_as_events($calendar_id, $events, $year, $month)
 {
 
-    $booking_events = array();
-    $month = str_pad($month, 2, '0', STR_PAD_LEFT);
+    global $wpdb;
 
-    $bookings = wpbs_get_bookings(array('calendar_id' => $calendar_id, 'orderby' => 'id', 'order' => 'asc', 'status' => array('pending', 'accepted'), 'custom_query' =>
-    ' AND ' . $year . $month . ' BETWEEN EXTRACT(YEAR_MONTH FROM start_date) and EXTRACT(YEAR_MONTH FROM end_date)'));
+    $booking_events = array();
+
+    $year = filter_var($year, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1, 'max_range' => 9999)));
+    $month = filter_var($month, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1, 'max_range' => 12)));
+
+    if ($year === false || $month === false) {
+        return $booking_events;
+    }
+
+    $year_month = ($year * 100) + $month;
+
+    $custom_query = $wpdb->prepare(
+        ' AND %d BETWEEN EXTRACT(YEAR_MONTH FROM start_date) AND EXTRACT(YEAR_MONTH FROM end_date)',
+        $year_month
+    );
+
+    $bookings = wpbs_get_bookings(array(
+        'calendar_id' => absint($calendar_id),
+        'orderby' => 'id',
+        'order' => 'asc',
+        'status' => array('pending', 'accepted'),
+        'custom_query' => $custom_query,
+    ));
+
 
     foreach ($bookings as $booking) {
         $events_begin = new DateTime($booking->get('start_date'));
@@ -648,5 +669,3 @@ function wpbs_overview_calendar_shortcode_dynamic_args($calendar_args)
     return $calendar_args;
 }
 add_filter('wpbs_overview_calendar_shortcode_args', 'wpbs_overview_calendar_shortcode_dynamic_args', 10, 1);
-
-
