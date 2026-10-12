@@ -29,7 +29,7 @@ $active_languages = (! empty($settings['active_languages']) ? $settings['active_
 <?php if (isset($_GET['booking_id']) && !empty($_GET['booking_id'])): ?>
     <script>
         jQuery(document).ready(function() {
-            wpbs_open_booking_modal(<?php echo $_GET['booking_id']; ?>, '<?php echo isset($_GET['modal-tab']) ? esc_attr($_GET['modal-tab']) : ''; ?>');
+            wpbs_open_booking_modal(<?php echo absint($_GET['booking_id']); ?>, '<?php echo isset($_GET['modal-tab']) ? esc_attr($_GET['modal-tab']) : ''; ?>');
         });
     </script>
 <?php endif; ?>
