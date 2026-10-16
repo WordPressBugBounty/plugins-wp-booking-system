@@ -19,7 +19,6 @@ function wpbs_add_user_restrictions_edit_form_fields($form)
     }
 
     include 'views/view-edit-form-main-fields.php';
-
 }
 add_action('wpbs_submenu_page_edit_form_tab_general_bottom', 'wpbs_add_user_restrictions_edit_form_fields');
 
@@ -31,6 +30,10 @@ add_action('wpbs_submenu_page_edit_form_tab_general_bottom', 'wpbs_add_user_rest
  */
 function wpbs_save_user_restrictions_edit_form_fields($post_data)
 {
+
+    if (!wpbs_current_user_can_edit_plugin()) {
+        return;
+    }
 
     if (!isset($post_data['user_permission'])) {
         return;
@@ -55,9 +58,7 @@ function wpbs_save_user_restrictions_edit_form_fields($post_data)
         foreach ($post_data['user_permission'] as $user_id) {
             wpbs_add_form_meta($form_id, 'user_permission', $user_id);
         }
-
     }
-
 }
 add_action('wpbs_save_form_data', 'wpbs_save_user_restrictions_edit_form_fields');
 
@@ -82,11 +83,9 @@ function wpbs_current_user_can_edit_any_forms()
         if (wpbs_current_user_can_edit_form($form->get('id'))) {
             return true;
         }
-
     }
 
     return false;
-
 }
 
 /**
@@ -112,7 +111,6 @@ function wpbs_current_user_can_edit_form($form_id)
     }
 
     return false;
-
 }
 
 /**
@@ -140,7 +138,6 @@ function wpbs_set_forms_submenu_page_capabilities($capability = 'manage_options'
         if (wpbs_current_user_can_edit_any_forms()) {
             return 'manage_options';
         }
-
     }
 
     // If on edit form page
@@ -149,17 +146,14 @@ function wpbs_set_forms_submenu_page_capabilities($capability = 'manage_options'
         if (wpbs_current_user_can_edit_form((int) $_GET['form_id'])) {
             return 'read';
         }
-
     } else {
 
         if (wpbs_current_user_can_edit_any_forms()) {
             return 'read';
         }
-
     }
 
     return $capability;
-
 }
 add_filter('wpbs_menu_page_capability', 'wpbs_set_forms_submenu_page_capabilities');
 add_filter('wpbs_submenu_page_capability_forms', 'wpbs_set_forms_submenu_page_capabilities');
@@ -204,7 +198,6 @@ function wpbs_get_forms_user_capabilities($forms, $args, $count = false)
         if (wpbs_current_user_can_edit_form($form->get('id'))) {
             $user_forms[] = $form;
         }
-
     }
 
     // Handle the case where forms are being present
@@ -220,11 +213,9 @@ function wpbs_get_forms_user_capabilities($forms, $args, $count = false)
         if ($forms < 0) {
             $forms = 0;
         }
-
     }
 
     return $forms;
-
 }
 add_filter('wpbs_get_forms', 'wpbs_get_forms_user_capabilities', 10, 3);
 
@@ -264,7 +255,6 @@ function wpbs_get_forms_user_capabilities_global($forms, $args, $count = false)
         if (wpbs_current_user_can_edit_form($form->get('id'))) {
             $user_forms[] = $form;
         }
-
     }
 
     // Handle the case where forms are being present
@@ -280,11 +270,9 @@ function wpbs_get_forms_user_capabilities_global($forms, $args, $count = false)
         if ($forms < 0) {
             $forms = 0;
         }
-
     }
 
     return $forms;
-
 }
 
 /**
@@ -303,7 +291,6 @@ function wpbs_list_table_forms_remove_views($views)
     }
 
     return array();
-
 }
 add_filter('wpbs_list_table_forms_views', 'wpbs_list_table_forms_remove_views', 100);
 
@@ -318,7 +305,6 @@ function wpbs_forms_page_remove_title_actions()
     if (!wpbs_current_user_can_edit_plugin()) {
         echo '<style>.wpbs-wrap-forms .page-title-action { display: none; }</style>';
     }
-
 }
 add_action('admin_head', 'wpbs_forms_page_remove_title_actions');
 
@@ -349,6 +335,5 @@ function wpbs_list_table_forms_remove_row_actions($actions, $item)
     }
 
     return $actions;
-
 }
 add_filter('wpbs_list_table_forms_row_actions', 'wpbs_list_table_forms_remove_row_actions', 100, 2);

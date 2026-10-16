@@ -33,6 +33,12 @@ function wpbs_refresh_calendar_editor()
     $_POST['calendar_data'] = (!empty($_POST['calendar_data']) ? json_decode($_POST['calendar_data'], true) : array());
 
     $calendar_id = absint($_POST['id']);
+
+    if (!$calendar_id || !wpbs_current_user_can_access_calendar($calendar_id)) {
+        echo __('', 'wp-booking-system');
+        wp_die();
+    }
+
     $calendar = wpbs_get_calendar($calendar_id);
 
     $calendar_args = array();
@@ -43,7 +49,6 @@ function wpbs_refresh_calendar_editor()
         if (in_array($key, array_keys(wpbs_get_calendar_output_default_args()))) {
             $calendar_args[$key] = sanitize_text_field($val);
         }
-
     }
 
     $calendar_args['is_admin'] = true;

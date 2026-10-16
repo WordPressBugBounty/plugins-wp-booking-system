@@ -241,13 +241,19 @@ function wpbs_action_email_logs()
         return false;
     }
 
-    $logs = wpbs_get_booking_meta($_GET['booking_id'], 'email_log');
+    $logs = wpbs_get_booking_meta(absint($_GET['booking_id']), 'email_log');
 
-    if (!isset($logs[$_GET['email_log_id']])) {
+    if (!isset($logs[absint($_GET['email_log_id'])])) {
         return false;
     }
 
-    echo $logs[$_GET['email_log_id']]['message'];
+    $booking = wpbs_get_booking(absint($_GET['booking_id']));
+
+    if (!$booking || !wpbs_current_user_can_access_calendar($booking->get('calendar_id'))) {
+        return false;
+    }
+
+    echo $logs[absint($_GET['email_log_id'])]['message'];
 
     exit;
 }
@@ -270,27 +276,35 @@ function wpbs_action_resend_email()
         return false;
     }
 
-    $logs = wpbs_get_booking_meta($_GET['booking_id'], 'email_log');
+    $email_log_id = absint($_GET['email_log_id']);
 
-    if (!isset($logs[$_GET['email_log_id']])) {
+    $booking = wpbs_get_booking(absint($_GET['booking_id']));
+
+    if (!$booking || !wpbs_current_user_can_access_calendar($booking->get('calendar_id'))) {
+        return false;
+    }
+
+    $logs = wpbs_get_booking_meta(absint($_GET['booking_id']), 'email_log');
+
+    if (!isset($logs[$email_log_id])) {
         return false;
     }
 
     $headers = array();
     $headers[] = 'Content-type: text/html;';
 
-    if (!empty($logs[$_GET['email_log_id']]['from_email'])) {
-        $headers[] = 'From: ' . $logs[$_GET['email_log_id']]['from_name'] . ' <' . $logs[$_GET['email_log_id']]['from_email'] . '>';
+    if (!empty($logs[$email_log_id]['from_email'])) {
+        $headers[] = 'From: ' . $logs[$email_log_id]['from_name'] . ' <' . $logs[$email_log_id]['from_email'] . '>';
     }
 
-    if (!empty($logs[$_GET['email_log_id']]['reply_to'])) {
-        $headers[] = 'Reply-To: ' . $logs[$_GET['email_log_id']]['reply_to'];
+    if (!empty($logs[$email_log_id]['reply_to'])) {
+        $headers[] = 'Reply-To: ' . $logs[$email_log_id]['reply_to'];
     }
 
-    $message = $logs[$_GET['email_log_id']]['message'];
+    $message = $logs[$email_log_id]['message'];
 
-    $subject = $logs[$_GET['email_log_id']]['subject'];
-    $send_to = $logs[$_GET['email_log_id']]['send_to'];
+    $subject = $logs[$email_log_id]['subject'];
+    $send_to = $logs[$email_log_id]['send_to'];
 
     // ..and off you go
     $email = wp_mail($send_to, $subject, $message, $headers);

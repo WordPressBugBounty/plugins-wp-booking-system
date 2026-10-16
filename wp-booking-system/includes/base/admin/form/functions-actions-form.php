@@ -118,7 +118,23 @@ function wpbs_action_edit_form()
      * Prepare variables
      *
      */
+    if (!is_user_logged_in() || !is_scalar($_POST['form_id'])) {
+        return;
+    }
+
     $form_id = absint($_POST['form_id']);
+
+    if (!$form_id || !wpbs_get_form($form_id)) {
+        return;
+    }
+
+    if (
+        !wpbs_current_user_can_edit_plugin() &&
+        !wpbs_current_user_can_edit_form($form_id)
+    ) {
+        return;
+    }
+
     $form_name = sanitize_text_field($_POST['form_name']);
 
 
@@ -212,7 +228,7 @@ function wpbs_action_edit_form()
         'custom_vat_percentage' => array('translations' => false, 'sanitization' => 'sanitize_text_field'),
         'bt_instructions' => array('translations' => true, 'sanitization' => 'wp_kses_post'),
         'hide_zero_line_items' => array('translations' => false, 'sanitization' => 'sanitize_text_field', 'checkbox' => true),
-        
+
 
         // Form Confirmation
         'form_confirmation_type' => array('translations' => false, 'sanitization' => 'sanitize_text_field'),
@@ -405,4 +421,3 @@ function wpbs_action_delete_form()
     exit;
 }
 add_action('wpbs_action_delete_form', 'wpbs_action_delete_form', 50);
-
