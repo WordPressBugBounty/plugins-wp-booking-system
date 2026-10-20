@@ -24,6 +24,13 @@ function wpbs_action_ajax_open_booking_details()
         return;
     }
 
+    if (
+        !is_user_logged_in() ||
+        !wpbs_current_user_can_access_calendar($booking->get('calendar_id'))
+    ) {
+        return false;
+    }
+
     // If booking is unread, make it read
     if (!$booking->get('is_read')) {
         $booking_data = array(
@@ -57,6 +64,15 @@ function wpbs_action_ajax_booking_email_customer()
     if (is_null($booking)) {
         return;
     }
+
+    if (
+        !is_user_logged_in() ||
+        !wpbs_current_user_can_access_calendar($booking->get('calendar_id'))
+    ) {
+        return false;
+    }
+
+
     parse_str($_POST['form_data'], $_POST['form_data']);
 
     $email_form_data = $_POST['form_data'];
@@ -109,6 +125,13 @@ function wpbs_action_ajax_wpbs_edit_booking_details()
 
     if (is_null($booking)) {
         return;
+    }
+
+    if (
+        !is_user_logged_in() ||
+        !wpbs_current_user_can_access_calendar($booking->get('calendar_id'))
+    ) {
+        return false;
     }
 
     $editable_crons = wpbs_get_editable_crons();
@@ -281,6 +304,16 @@ function wpbs_action_ajax_booking_add_note()
 
     $booking_id = absint($_POST['booking_id']);
 
+    $booking = wpbs_get_booking($booking_id);
+
+    if (
+        !$booking ||
+        !is_user_logged_in() ||
+        !wpbs_current_user_can_access_calendar($booking->get('calendar_id'))
+    ) {
+        return false;
+    }
+
     $note = sanitize_textarea_field($_POST['note']);
 
     if (empty($note)) {
@@ -332,6 +365,16 @@ function wpbs_action_ajax_booking_delete_note()
     }
 
     $booking_id = absint($_POST['booking_id']);
+
+    $booking = wpbs_get_booking($booking_id);
+
+    if (
+        !$booking ||
+        !is_user_logged_in() ||
+        !wpbs_current_user_can_access_calendar($booking->get('calendar_id'))
+    ) {
+        return false;
+    }
 
     $note_id = absint($_POST['note_id']);
 
@@ -401,4 +444,3 @@ function wpbs_action_ajax_booking_remember_orderby_option()
     wp_die();
 }
 add_action('wp_ajax_wpbs_booking_remember_orderby_option', 'wpbs_action_ajax_booking_remember_orderby_option');
-

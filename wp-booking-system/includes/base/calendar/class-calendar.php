@@ -79,16 +79,16 @@ class WPBS_Calendar extends WPBS_Base_Object
     {
 
         if (empty($language_code)) {
-            return $this->name;
+            return esc_attr($this->name);
         }
 
         if (!wpbs_translations_active($language_code)) {
-            return $this->name;
+            return esc_attr($this->name);
         }
 
         $translation = wpbs_get_calendar_meta($this->id, 'calendar_name_translation_' . $language_code, true);
 
-        return (!empty($translation) ? $translation : $this->name);
+        return esc_attr((!empty($translation) ? $translation : $this->name));
 
     }
 
