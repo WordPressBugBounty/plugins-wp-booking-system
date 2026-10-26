@@ -1,9 +1,10 @@
 <?php
+
 /**
  * Plugin Name: WP Booking System
  * Plugin URI: https://www.wpbookingsystem.com/
  * Description: A set-and-forget booking calendar for your rental business.
- * Version: 2.1.0.5
+ * Version: 2.1.0.6
  * Author: Veribo, Roland Murg
  * Author URI: https://www.wpbookingsystem.com/
  * Text Domain: wp-booking-system
@@ -61,7 +62,7 @@ class WP_Booking_System
     {
 
         // Defining constants
-        define('WPBS_VERSION', '2.1.0.5');
+        define('WPBS_VERSION', '2.1.0.6');
         define('WPBS_FILE', __FILE__);
         define('WPBS_BASENAME', plugin_basename(__FILE__));
         define('WPBS_PLUGIN_DIR', plugin_dir_path(__FILE__));
@@ -172,7 +173,7 @@ class WP_Booking_System
 
             // Add first activation time
             if (get_option('wpbs_first_activation', '') == '') {
-                
+
                 update_option('wpbs_first_activation', time());
 
                 do_action('wpbs_first_activation', $db_version);
@@ -414,6 +415,9 @@ class WP_Booking_System
                 'process_refund_token' => wp_create_nonce('wpbs_process_refund'),
                 'bookings_per_page' => apply_filters('wpbs_dashboard_bookings_per_page', 5),
                 'cta_url' => add_query_arg(array('page' => 'wpbs-calendars', 'subpage' => 'upgrade-to-premium'), admin_url('admin.php')),
+                'email_status_toggle' => wp_create_nonce('wpbs_email_status_toggle'),
+                'calendar_notes' => wp_create_nonce('wpbs_calendar_notes'),
+                'add_booking_save_calendar_options' => wp_create_nonce('wpbs_add_booking_save_calendar_options'),
             ));
             wp_enqueue_script('wpbs-script-edit-booking');
 
@@ -443,7 +447,7 @@ class WP_Booking_System
          */
         if (!empty($_GET['page']) && $_GET['page'] == 'wpbs-calendars') {
 
-           
+
 
             // moment.js
             wp_register_script('wpbs-momentjs', WPBS_PLUGIN_DIR_URL . 'assets/js/moment.min.js', array(), WPBS_VERSION, true);
@@ -539,7 +543,7 @@ class WP_Booking_System
             wp_enqueue_style('wpbs-style-form');
         }
 
-       
+
 
         // moment.js
         wp_register_script('wpbs-momentjs', WPBS_PLUGIN_DIR_URL . 'assets/js/moment.min.js', array(), WPBS_VERSION, true);
@@ -553,7 +557,7 @@ class WP_Booking_System
             'token' => wp_create_nonce('wpbs_form_ajax'),
             'time_format' => wpbs_convert_php_to_moment_format(get_option('date_format')),
             'permalink' => get_permalink(),
-           
+
             'wpbs_datepicker_params' => apply_filters('wpbs_datepicker_params', []),
             'scroll_animation_offset' => apply_filters('wpbs_form_scroll_animation_offset', 100),
         ));

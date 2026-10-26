@@ -1224,6 +1224,7 @@ jQuery(function ($) {
         // Prepare data
         data = {
             action: 'wpbs_add_booking_save_calendar_options',
+            wpbs_token: wpbs_localized_data_booking.add_booking_save_calendar_options,
             options: $(".wpbs-add-booking-options-form").serialize(),
         }
 

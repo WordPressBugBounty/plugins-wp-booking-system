@@ -990,6 +990,7 @@ jQuery(function ($) {
             action: 'wpbs_calendar_add_note',
             calendar_id: $('input[name="calendar_id"]').val(),
             note: $note.val(),
+            wpbs_token: wpbs_localized_data_booking.calendar_notes,
         }
 
         // Send the request
@@ -1034,6 +1035,7 @@ jQuery(function ($) {
             action: 'wpbs_calendar_remove_note',
             calendar_id: $('input[name="calendar_id"]').val(),
             note_id: $button.data('note-id'),
+            wpbs_token: wpbs_localized_data_booking.calendar_notes,
         }
 
         // Send the request
@@ -1404,6 +1406,7 @@ jQuery(function ($) {
             action: 'wpbs_email_status_toggle',
             email_id: $(this).data('email-id'),
             value: $(this).prop('checked'),
+            wpbs_token: wpbs_localized_data_booking.email_status_toggle,
         }
 
         // Send the request

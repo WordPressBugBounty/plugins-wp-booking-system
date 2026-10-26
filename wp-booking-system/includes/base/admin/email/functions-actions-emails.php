@@ -408,18 +408,40 @@ add_action('wpbs_action_duplicate_email', 'wpbs_action_duplicate_email', 50);
  */
 function wpbs_action_ajax_email_status_toggle()
 {
+    check_ajax_referer('wpbs_email_status_toggle', 'wpbs_token');
 
-    if (!isset($_POST['email_id'])) {
+    if (
+        !isset($_POST['email_id']) ||
+        !is_string($_POST['email_id'])
+    ) {
         return false;
     }
 
     $email_id = absint($_POST['email_id']);
+    $email = $email_id ? wpbs_get_email($email_id) : false;
 
-    wpbs_update_email($email_id, [
-        'is_enabled' => ($_POST['value'] == 'true' ? 1 : 0),
-        'date_modified' => current_time('Y-m-d H:i:s')
-    ]);
+    if (
+        !is_user_logged_in() ||
+        !$email ||
+        (
+            !wpbs_current_user_can_edit_plugin() &&
+            !wpbs_current_user_can_edit_form($email->get('form_id'))
+        )
+    ) {
+        return false;
+    }
+
+    if (
+        !isset($_POST['value']) ||
+        !in_array($_POST['value'], array('true', 'false'), true)
+    ) {
+        return false;
+    }
+
+    wpbs_update_email($email_id, array(
+        'is_enabled' => $_POST['value'] === 'true' ? 1 : 0,
+        'date_modified' => current_time('Y-m-d H:i:s'),
+    ));
 
     wp_die();
 }
-add_action('wp_ajax_wpbs_email_status_toggle', 'wpbs_action_ajax_email_status_toggle');

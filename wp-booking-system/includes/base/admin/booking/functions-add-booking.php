@@ -12,6 +12,11 @@ if (!defined('ABSPATH')) {
 function wpbs_action_ajax_add_booking_save_calendar_options()
 {
 
+    check_ajax_referer(
+        'wpbs_add_booking_save_calendar_options',
+        'wpbs_token'
+    );
+
     parse_str($_POST['options'], $options);
 
     if (!isset($options['calendar_id'])) {

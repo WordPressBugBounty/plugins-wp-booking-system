@@ -65,11 +65,22 @@ function wpbs_output_note_html($data, $id)
 function wpbs_action_ajax_calendar_add_note()
 {
 
+    check_ajax_referer('wpbs_calendar_notes', 'wpbs_token');
+
     if (!isset($_POST['calendar_id'])) {
         return false;
     }
 
     $calendar_id = absint($_POST['calendar_id']);
+
+    if (
+        !is_user_logged_in() ||
+        !$calendar_id ||
+        !wpbs_get_calendar($calendar_id) ||
+        !wpbs_current_user_can_access_calendar($calendar_id)
+    ) {
+        return false;
+    }
 
     $note = sanitize_textarea_field($_POST['note']);
 
@@ -104,11 +115,22 @@ add_action('wp_ajax_wpbs_calendar_add_note', 'wpbs_action_ajax_calendar_add_note
  */
 function wpbs_action_ajax_calendar_remove_note()
 {
+    check_ajax_referer('wpbs_calendar_notes', 'wpbs_token');
+    
     if (!isset($_POST['calendar_id'])) {
         return false;
     }
 
     $calendar_id = absint($_POST['calendar_id']);
+
+    if (
+        !is_user_logged_in() ||
+        !$calendar_id ||
+        !wpbs_get_calendar($calendar_id) ||
+        !wpbs_current_user_can_access_calendar($calendar_id)
+    ) {
+        return false;
+    }
 
     $note_id = absint($_POST['note_id']);
 
