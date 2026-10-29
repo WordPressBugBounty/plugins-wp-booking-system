@@ -13,7 +13,7 @@ $form_meta = wpbs_get_form_meta($form_id);
 $form_data = $form->get('fields');
 
 $tabs         = $this->get_tabs();
-$active_tab = (! empty($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'form-builder');
+$active_tab = (! empty($_GET['tab']) ? esc_attr($_GET['tab']) : 'form-builder');
 
 $settings = get_option('wpbs_settings', array());
 $active_languages = (!empty($settings['active_languages']) ? $settings['active_languages'] : array());

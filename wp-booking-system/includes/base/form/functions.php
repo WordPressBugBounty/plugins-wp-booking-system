@@ -302,6 +302,105 @@ function wpbs_get_form_output_default_args()
 }
 
 /**
+ * Returns the form arguments that restrict a booking and must not be altered by the visitor
+ *
+ * @return array
+ *
+ */
+function wpbs_get_form_signed_args_keys()
+{
+
+    return array('minimum_days', 'maximum_days', 'booking_start_day', 'booking_end_day', 'selection_type', 'selection_style', 'auto_pending', 'show_date_selection');
+
+}
+
+/**
+ * Normalizes the restricting form arguments so they produce the same signature
+ * when rendered in the page and when sent back through ajax
+ *
+ * @param array $args
+ *
+ * @return array
+ *
+ */
+function wpbs_normalize_form_signed_args($args)
+{
+
+    $normalized = array();
+
+    foreach (wpbs_get_form_signed_args_keys() as $key) {
+
+        $value = isset($args[$key]) && is_scalar($args[$key]) ? (string) $args[$key] : '';
+
+        if (in_array($key, array('minimum_days', 'maximum_days', 'booking_start_day', 'booking_end_day', 'show_date_selection'))) {
+            $value = (int) $value;
+        }
+
+        $normalized[$key] = $value;
+    }
+
+    return $normalized;
+
+}
+
+/**
+ * Returns the signature of the restricting form arguments, bound to the form and calendar
+ *
+ * @param int   $form_id
+ * @param int   $calendar_id
+ * @param array $args
+ *
+ * @return string
+ *
+ */
+function wpbs_get_form_args_signature($form_id, $calendar_id, $args)
+{
+
+    $data = wp_json_encode(array((int) $form_id, (int) $calendar_id, wpbs_normalize_form_signed_args($args)));
+
+    return hash_hmac('sha256', $data, wp_salt('auth'));
+
+}
+
+/**
+ * Builds the form arguments from an ajax request.
+ *
+ * The restricting arguments (auto pending, minimum/maximum days, etc.) are only accepted
+ * if they match the signature generated when the form was rendered.
+ *
+ * @param array $post_form   The $_POST['form'] data
+ * @param int   $form_id
+ * @param int   $calendar_id
+ * @param bool  $manual_booking
+ *
+ * @return array|false
+ *
+ */
+function wpbs_get_form_args_from_request($post_form, $form_id, $calendar_id, $manual_booking)
+{
+
+    if (!is_array($post_form)) {
+        return false;
+    }
+
+    $signature = (!empty($post_form['args_signature']) && is_string($post_form['args_signature'])) ? $post_form['args_signature'] : '';
+
+    if (!hash_equals(wpbs_get_form_args_signature($form_id, $calendar_id, $post_form), $signature)) {
+        return false;
+    }
+
+    $form_args = wpbs_normalize_form_signed_args($post_form);
+
+    $language = (isset($post_form['language']) && is_string($post_form['language'])) ? sanitize_text_field($post_form['language']) : 'auto';
+
+    $form_args['language'] = ($language == 'auto' ? wpbs_get_site_language() : $language);
+    $form_args['manual_booking'] = $manual_booking;
+
+    return $form_args;
+
+}
+
+/**
  * Get all email tag fields IDs used in a text, matching the {ID:NAME} format
  *
  * @param string    $text

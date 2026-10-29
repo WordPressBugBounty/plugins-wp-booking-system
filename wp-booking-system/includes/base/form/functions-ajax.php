@@ -47,25 +47,21 @@ function wpbs_submit_form()
         }
     }
 
-    // Set the form arguments
-    $form_args = array(
-        'minimum_days' => (int) $_POST['form']['minimum_days'],
-        'maximum_days' => (int) $_POST['form']['maximum_days'],
-        'booking_start_day' => (int) $_POST['form']['booking_start_day'],
-        'booking_end_day' => (int) $_POST['form']['booking_end_day'],
-        'selection_type' => $_POST['form']['selection_type'],
-        'selection_style' => $_POST['form']['selection_style'],
-        'auto_pending' => $_POST['form']['auto_pending'],
-        'show_date_selection' => (int) $_POST['form']['show_date_selection'],
-        'language' => ($_POST['form']['language'] == 'auto' ? wpbs_get_site_language() : $_POST['form']['language']),
-        'manual_booking' => $manual_booking,
-    );
+    // Set the form arguments, only if they match the ones the form was rendered with
+    $form_args = wpbs_get_form_args_from_request($_POST['form'], $form_id, $calendar_id, $manual_booking);
+
+    if ($form_args === false) {
+        $response = array('success' => false);
+        $response['html'] = '<div class="wpbs-form-general-error">' . __('The booking form is no longer valid. Please refresh the page and try again.', 'wp-booking-system') . '</div>';
+        echo json_encode($response);
+        wp_die();
+    }
 
     // Validate Form
     $form_validator = new WPBS_Form_Validator($form, $calendar, $_POST['form_data'], $_POST['form']['language']);
     $form_validator->sanitize_fields();
     $form_validator->validate_fields($form_args, $_POST['calendar']);
-    $form_validator->validate_dates($_POST['form'], $_POST['calendar']);
+    $form_validator->validate_dates($form_args, $_POST['calendar']);
     $form_validator->set_error_message();
 
     // Get form fields after sanitization and validation
@@ -139,28 +135,24 @@ function wpbs_validate_date_selection()
         }
     }
 
+    // Set the form arguments, only if they match the ones the form was rendered with
+    $form_args = wpbs_get_form_args_from_request($_POST['form'], $form_id, $calendar_id, $manual_booking);
+
+    if ($form_args === false) {
+        $response = array('success' => false);
+        $response['html'] = '<div class="wpbs-form-general-error">' . __('The booking form is no longer valid. Please refresh the page and try again.', 'wp-booking-system') . '</div>';
+        echo json_encode($response);
+        wp_die();
+    }
+
     // Validate Form
     $form_validator = new WPBS_Form_Validator($form, $calendar, $_POST['form_data'], $_POST['form']['language']);
     $form_validator->sanitize_fields();
-    $form_validator->validate_dates($_POST['form'], $_POST['calendar']);
+    $form_validator->validate_dates($form_args, $_POST['calendar']);
     $form_validator->set_error_message();
 
     // Get form fields after sanitization and validation
     $form_fields = $form_validator->get_form_fields();
-
-    // Set the form arguments
-    $form_args = array(
-        'minimum_days' => (int) $_POST['form']['minimum_days'],
-        'maximum_days' => (int) $_POST['form']['maximum_days'],
-        'booking_start_day' => (int) $_POST['form']['booking_start_day'],
-        'booking_end_day' => (int) $_POST['form']['booking_end_day'],
-        'selection_type' => $_POST['form']['selection_type'],
-        'selection_style' => $_POST['form']['selection_style'],
-        'auto_pending' => $_POST['form']['auto_pending'],
-        'show_date_selection' => (int) $_POST['form']['show_date_selection'],
-        'language' => ($_POST['form']['language'] == 'auto' ? wpbs_get_site_language() : $_POST['form']['language']),
-        'manual_booking' => $manual_booking,
-    );
 
     if ($form_validator->has_errors() === true) {
 

@@ -247,11 +247,11 @@ class WPBS_Form_Handler
     {
 
         // Only create events if auto_pending is set to true
-        if ($this->post_data['form']['auto_pending'] != 1) {
+        if ($this->form_args['auto_pending'] != 1) {
             return false;
         }
 
-        $selection_style = $this->post_data['form']['selection_style'];
+        $selection_style = $this->form_args['selection_style'];
         wpbs_update_booking_meta($this->booking_id, 'selection_style', $selection_style);
 
         $events_data = array();

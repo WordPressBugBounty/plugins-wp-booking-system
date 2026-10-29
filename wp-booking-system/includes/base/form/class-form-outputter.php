@@ -185,6 +185,9 @@ class WPBS_Form_Outputter
             $form_html_data .= 'data-' . $arg . '="' . esc_attr($val) . '" ';
         }
 
+        // Sign the restricting arguments so they can't be altered when the form is submitted
+        $form_html_data .= 'data-args_signature="' . esc_attr(wpbs_get_form_args_signature($this->form->get('id'), $this->calendar_id, $this->args)) . '" ';
+
         $enctype = apply_filters('wpbs_enable_file_upload_field', false) ? ' enctype="multipart/form-data"' : '';
 
         /**

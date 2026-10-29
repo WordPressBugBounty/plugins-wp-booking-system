@@ -433,9 +433,16 @@ class WPBS_Form_Validator
             return false;
         }
 
+        // Do not allow bookings in the past, unless it's a manual booking made by an administrator.
+        if (empty($form_args['manual_booking']) && date('Ymd', $calendar_args['start_date']) < current_time('Ymd')) {
+            $this->has_errors = true;
+            $this->form_fields['form_error'] = wpbs_get_form_default_string($this->form->get('id'), 'invalid_selection', $this->language);
+            return false;
+        }
+
         /**
          * Check if dates are available
-         * 
+         *
          */
         if (wpbs_check_if_date_range_is_bookable($this->calendar->get('id'), date('Ymd', $calendar_args['start_date']), date('Ymd', $calendar_args['end_date'])) === false) {
             $this->has_errors = true;
