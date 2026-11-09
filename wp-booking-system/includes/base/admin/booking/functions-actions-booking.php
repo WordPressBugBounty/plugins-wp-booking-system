@@ -62,7 +62,6 @@ function wpbs_save_booking_data($data)
 
         $emails = new WPBS_Email_Notifications($booking_id);
         $emails->send_booking_cancelled_emails();
-
     } elseif ($action == 'uncancel') {
 
         do_action('wpbs_save_booking_data_uncancel_booking', $booking);
@@ -71,7 +70,6 @@ function wpbs_save_booking_data($data)
 
         // Delete it from the database
         wpbs_delete_booking_meta($booking_id, 'before_cancel_status');
-
     }
 
     // Prepare Data
@@ -135,16 +133,36 @@ function wpbs_action_permanently_delete_booking()
         return;
     }
 
-    $booking_id = $_GET['booking_id'];
+    if (!is_string($_GET['booking_id']) || !is_string($_GET['calendar_id'])) {
+        return;
+    }
 
-    $calendar_id = $_GET['calendar_id'];
+    $booking_id = absint($_GET['booking_id']);
+
+    $booking = $booking_id ? wpbs_get_booking($booking_id) : false;
+
+    if (!$booking) {
+        return;
+    }
+
+    // Authorize against the booking's stored calendar.
+    $calendar_id = (int) $booking->get('calendar_id');
+
+    if (!is_user_logged_in() || !$calendar_id || !wpbs_get_calendar($calendar_id) || !wpbs_current_user_can_access_calendar($calendar_id)) {
+        return;
+    }
+
+    // Reject a conflicting calendar supplied in the request.
+    if (absint($_GET['calendar_id']) !== $calendar_id) {
+        return;
+    }
 
     do_action('wpbs_permanently_delete_booking', $booking_id);
 
     // Delete Booking
     wpbs_delete_booking($booking_id);
 
-   
+
 
     // Delete Booking Meta
     $booking_meta = wpbs_get_booking_meta($booking_id);
@@ -176,7 +194,15 @@ function wpbs_action_permanently_delete_all_bookings()
         return;
     }
 
+    if (!is_string($_GET['calendar_id'])) {
+        return;
+    }
+
     $calendar_id = absint($_GET['calendar_id']);
+
+    if (!is_user_logged_in() || !$calendar_id || !wpbs_get_calendar($calendar_id) || !wpbs_current_user_can_access_calendar($calendar_id)) {
+        return;
+    }
 
     do_action('wpbs_permanently_delete_all_bookings', $calendar_id);
 
@@ -186,7 +212,7 @@ function wpbs_action_permanently_delete_all_bookings()
     foreach ($bookings as $booking) {
         wpbs_delete_booking($booking->get('id'));
 
-        
+
 
         // Delete Booking Meta
         $booking_meta = wpbs_get_booking_meta($booking->get('id'));
@@ -212,7 +238,7 @@ function wpbs_bookings_outputter_ajax()
     // Nonce
     check_ajax_referer('wpbs_booking_outputter', 'wpbs_token');
 
-    if(!wpbs_current_user_can_access_calendar($_POST['data']['calendarId'])){
+    if (!wpbs_current_user_can_access_calendar($_POST['data']['calendarId'])) {
         return false;
     }
 
